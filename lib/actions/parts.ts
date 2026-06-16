@@ -11,7 +11,16 @@ import {
 import { db } from "@/lib/db";
 import { parts } from "@/lib/db/schema";
 import { ensureInventoryRow } from "@/lib/services/inventory";
+import { parseSpecsJson } from "@/lib/services/part-specs";
+import { upsertPartRecord } from "@/lib/services/parts-catalog";
 import { normalizePartName } from "@/lib/services/sku-import";
+
+function readOptionalString(formData: FormData, key: string): string | null {
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
 
 export async function createPart(formData: FormData): Promise<ActionResult> {
   const name = formData.get("name");
@@ -20,11 +29,6 @@ export async function createPart(formData: FormData): Promise<ActionResult> {
   }
 
   const normalizedName = normalizePartName(name);
-  const description =
-    typeof formData.get("description") === "string"
-      ? formData.get("description")?.toString().trim() || null
-      : null;
-
   const [existing] = await db
     .select()
     .from(parts)
@@ -36,12 +40,15 @@ export async function createPart(formData: FormData): Promise<ActionResult> {
   }
 
   try {
-    const [created] = await db
-      .insert(parts)
-      .values({ name: name.trim(), normalizedName, description })
-      .returning();
+    const { partId } = await upsertPartRecord({
+      name: name.trim(),
+      category: readOptionalString(formData, "category"),
+      specs: parseSpecsJson(readOptionalString(formData, "specs")),
+      description: readOptionalString(formData, "description"),
+      mergeStrategy: "manual",
+    });
 
-    await ensureInventoryRow(created.id);
+    await ensureInventoryRow(partId);
     revalidatePath("/parts");
     revalidatePath("/inventory");
     return actionSuccess();
@@ -60,11 +67,6 @@ export async function updatePart(formData: FormData): Promise<ActionResult> {
   }
 
   const normalizedName = normalizePartName(name);
-  const description =
-    typeof formData.get("description") === "string"
-      ? formData.get("description")?.toString().trim() || null
-      : null;
-
   const [duplicate] = await db
     .select()
     .from(parts)
@@ -81,7 +83,9 @@ export async function updatePart(formData: FormData): Promise<ActionResult> {
       .set({
         name: name.trim(),
         normalizedName,
-        description,
+        category: readOptionalString(formData, "category"),
+        specs: parseSpecsJson(readOptionalString(formData, "specs")),
+        description: readOptionalString(formData, "description"),
         updatedAt: new Date(),
       })
       .where(eq(parts.id, id));

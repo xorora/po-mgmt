@@ -7,6 +7,7 @@ import Link from "next/link";
 import { DataTable } from "@/components/data-table/data-table";
 import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { PartFormDialog } from "@/components/parts/part-form-dialog";
+import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 import { Badge } from "@/components/ui/badge";
 import { createPart, deletePart, updatePart } from "@/lib/actions/parts";
 import type { PartListRow } from "@/lib/data-table/list-queries";
@@ -31,11 +32,15 @@ export function PartsDataTable({ result }: PartsDataTableProps) {
       ),
     },
     {
-      accessorKey: "description",
-      header: "Description",
+      id: "specs",
+      header: "Specifications",
       cell: ({ row }) => (
-        <span className="block max-w-xs truncate text-muted-foreground">
-          {row.original.description ?? "—"}
+        <span className="block max-w-md truncate">
+          <PartSpecsDisplay
+            specs={row.original.specs}
+            description={row.original.description}
+            maxLength={120}
+          />
         </span>
       ),
     },

@@ -508,6 +508,7 @@ export async function getVendorPoParts(vendorId: number) {
     .select({
       id: parts.id,
       name: parts.name,
+      specs: parts.specs,
       description: parts.description,
     })
     .from(vendorParts)

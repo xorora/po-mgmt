@@ -25,6 +25,7 @@ import {
   markVendorPoDeliveredAction,
   markVendorPoSentAction,
 } from "@/lib/actions/vendor-pos";
+import { formatPartSpecs } from "@/lib/services/part-specs";
 
 type VendorPoDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -57,7 +58,7 @@ export default async function VendorPoDetailPage({
     latestVersion?.lines.map((line) => ({
       partId: line.part.id,
       partName: line.part.name,
-      partDescription: line.part.description,
+      partDescription: formatPartSpecs(line.part),
       quantity: line.quantity,
     })) ?? [];
 

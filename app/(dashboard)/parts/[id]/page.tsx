@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PartImageGallery } from "@/components/bom/bom-images";
 import { PageHeader } from "@/components/page-header";
 import { PartFormDialog } from "@/components/parts/part-form-dialog";
+import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getPartById, updatePart } from "@/lib/actions/parts";
+import { formatPartSpecs } from "@/lib/services/part-specs";
 
 type PartDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -44,7 +46,11 @@ export default async function PartDetailPage({ params }: PartDetailPageProps) {
 
       <PageHeader
         title={part.name}
-        description={part.description ?? "No description"}
+        description={
+          formatPartSpecs(part) ??
+          part.description ??
+          "No specifications recorded"
+        }
       >
         <PartFormDialog
           part={part}
@@ -52,6 +58,15 @@ export default async function PartDetailPage({ params }: PartDetailPageProps) {
           triggerLabel="Edit part"
         />
       </PageHeader>
+
+      <section className="mb-8 space-y-3">
+        <h2 className="font-heading text-lg font-medium">Specifications</h2>
+        <PartSpecsDisplay
+          specs={part.specs}
+          description={part.description}
+          variant="list"
+        />
+      </section>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <Card>

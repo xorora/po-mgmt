@@ -53,6 +53,8 @@ export async function getPartsPaginated(pagination: PaginationParams) {
         id: parts.id,
         name: parts.name,
         normalizedName: parts.normalizedName,
+        category: parts.category,
+        specs: parts.specs,
         description: parts.description,
         createdAt: parts.createdAt,
         updatedAt: parts.updatedAt,
@@ -147,6 +149,7 @@ export async function getInventoryPaginated(pagination: PaginationParams) {
       .select({
         partId: parts.id,
         partName: parts.name,
+        specs: parts.specs,
         description: parts.description,
         quantityOnHand: inventory.quantityOnHand,
         updatedAt: inventory.updatedAt,

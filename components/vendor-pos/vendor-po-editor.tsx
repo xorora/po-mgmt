@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-
+import { partDisplayLabel } from "@/components/parts/part-specs-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,7 @@ import { saveVendorPoVersionAction } from "@/lib/actions/vendor-pos";
 type PartOption = {
   id: number;
   name: string;
+  specs?: Record<string, string> | null;
   description: string | null;
 };
 
@@ -60,7 +61,7 @@ function linesFromInitial(
 }
 
 function partLabel(part: PartOption) {
-  return part.description ? `${part.name} — ${part.description}` : part.name;
+  return partDisplayLabel(part);
 }
 
 export function VendorPoEditor({

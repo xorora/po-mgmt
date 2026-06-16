@@ -7,6 +7,7 @@ import {
   VendorPoDocument,
   type VendorPoPdfData,
 } from "@/lib/pdf/vendor-po-document";
+import { formatPartSpecs } from "@/lib/services/part-specs";
 import { storeVendorPoPdf } from "@/lib/storage/pdf-storage";
 
 const COMPANY_NAME = "Creative Lighting PVT LTD";
@@ -81,7 +82,7 @@ export async function generateVendorPoPdfForVersion(
     lines: version.lines
       .map((line) => ({
         partName: line.part.name,
-        description: line.part.description,
+        description: formatPartSpecs(line.part),
         quantity: line.quantity,
         thumbnailUrl: pickThumbnailUrl(partImageRows, line.partId),
       }))

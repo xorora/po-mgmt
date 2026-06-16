@@ -15,6 +15,13 @@
       "when": 1781637691741,
       "tag": "0001_woozy_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781645800307,
+      "tag": "0002_tiny_micromax",
+      "breakpoints": true
     }
   ]
 }

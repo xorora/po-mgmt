@@ -3,9 +3,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { WarehouseIcon } from "lucide-react";
 import Link from "next/link";
-
 import { DataTable } from "@/components/data-table/data-table";
 import { AdjustInventoryDialog } from "@/components/inventory/adjust-inventory-dialog";
+import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 import { Badge } from "@/components/ui/badge";
 import { LOW_STOCK_THRESHOLD } from "@/lib/constants/inventory";
 import type { InventoryListRow } from "@/lib/data-table/list-queries";
@@ -30,11 +30,15 @@ export function InventoryDataTable({ result }: InventoryDataTableProps) {
       ),
     },
     {
-      accessorKey: "description",
-      header: "Description",
+      id: "specs",
+      header: "Specifications",
       cell: ({ row }) => (
-        <span className="block max-w-xs truncate text-muted-foreground">
-          {row.original.description ?? "—"}
+        <span className="block max-w-xs truncate">
+          <PartSpecsDisplay
+            specs={row.original.specs}
+            description={row.original.description}
+            maxLength={100}
+          />
         </span>
       ),
     },

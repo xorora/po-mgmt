@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -9,6 +10,8 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+export type PartSpecs = Record<string, string>;
 
 export const customerOrderStatusEnum = pgEnum("customer_order_status", [
   "pending",
@@ -49,6 +52,8 @@ export const parts = pgTable(
     id: serial("id").primaryKey(),
     name: text("name").notNull(),
     normalizedName: text("normalized_name").notNull(),
+    category: text("category"),
+    specs: jsonb("specs").$type<PartSpecs>().notNull().default({}),
     description: text("description"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

@@ -5,8 +5,8 @@ import { Link2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-
 import { DataTable } from "@/components/data-table/data-table";
+import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 
 import {
   AlertDialog,
@@ -39,6 +39,7 @@ type AssignedPart = {
   part: {
     id: number;
     name: string;
+    specs: Record<string, string>;
     description: string | null;
     inventory: { quantityOnHand: number } | null;
   };
@@ -145,11 +146,15 @@ export function VendorPartAssignment({
       ),
     },
     {
-      id: "description",
-      header: "Description",
+      id: "specs",
+      header: "Specifications",
       cell: ({ row }) => (
-        <span className="block max-w-xs truncate text-muted-foreground">
-          {row.original.part.description ?? "—"}
+        <span className="block max-w-xs truncate">
+          <PartSpecsDisplay
+            specs={row.original.part.specs}
+            description={row.original.part.description}
+            maxLength={100}
+          />
         </span>
       ),
     },

@@ -4,7 +4,7 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-
+import { partDisplayLabel } from "@/components/parts/part-specs-display";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +35,7 @@ type VendorOption = Pick<Vendor, "id" | "name">;
 type PartOption = {
   id: number;
   name: string;
+  specs?: Record<string, string> | null;
   description: string | null;
 };
 
@@ -53,7 +54,7 @@ function createEmptyLine(): LineDraft {
 }
 
 function partLabel(part: PartOption) {
-  return part.description ? `${part.name} — ${part.description}` : part.name;
+  return partDisplayLabel(part);
 }
 
 export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {

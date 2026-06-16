@@ -8,6 +8,7 @@ import {
   productParts,
   products,
 } from "@/lib/db/schema";
+import { formatPartSpecs } from "@/lib/services/part-specs";
 
 export type OrderLineInput = {
   productId: number;
@@ -71,7 +72,8 @@ export async function explodeBomForOrderLines(
             partId: productParts.partId,
             bomQuantity: productParts.quantity,
             partName: parts.name,
-            partDescription: parts.description,
+            partSpecs: parts.specs,
+            partDescriptionRaw: parts.description,
           })
           .from(productParts)
           .innerJoin(parts, eq(productParts.partId, parts.id))
@@ -101,7 +103,10 @@ export async function explodeBomForOrderLines(
       } else {
         aggregated.set(bomLine.partId, {
           partName: bomLine.partName,
-          partDescription: bomLine.partDescription,
+          partDescription: formatPartSpecs({
+            specs: bomLine.partSpecs,
+            description: bomLine.partDescriptionRaw,
+          }),
           requiredQuantity: required,
         });
       }

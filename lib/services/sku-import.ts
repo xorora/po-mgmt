@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
 
 import { db } from "@/lib/db";
-import { inventory, parts, productParts, products } from "@/lib/db/schema";
+import { productParts, products } from "@/lib/db/schema";
 import {
   applyImageUrl,
   type BomRowImageUrls,
@@ -10,6 +10,7 @@ import {
   extractImagesFromXlsx,
 } from "@/lib/services/excel-images";
 import { getImgbbApiKey, uploadImageToImgbb } from "@/lib/services/imgbb";
+import { upsertPartFromImportLine } from "@/lib/services/parts-catalog";
 
 const BOM_START_ROW = 5; // 0-indexed row 6
 const COL = {
@@ -271,55 +272,7 @@ export async function attachImagesToParsedSku(
 async function upsertPart(
   line: ParsedBomLine,
 ): Promise<{ partId: number; created: boolean; updated: boolean }> {
-  const normalizedName = normalizePartName(line.partName);
-  const [existing] = await db
-    .select()
-    .from(parts)
-    .where(eq(parts.normalizedName, normalizedName))
-    .limit(1);
-
-  if (existing) {
-    let updated = false;
-    const nextDescription =
-      line.description &&
-      (!existing.description ||
-        line.description.length > existing.description.length)
-        ? line.description
-        : existing.description;
-
-    if (
-      nextDescription !== existing.description ||
-      existing.name !== line.partName
-    ) {
-      await db
-        .update(parts)
-        .set({
-          name: line.partName,
-          description: nextDescription,
-          updatedAt: new Date(),
-        })
-        .where(eq(parts.id, existing.id));
-      updated = true;
-    }
-
-    return { partId: existing.id, created: false, updated };
-  }
-
-  const [inserted] = await db
-    .insert(parts)
-    .values({
-      name: line.partName,
-      normalizedName,
-      description: line.description,
-    })
-    .returning({ id: parts.id });
-
-  await db.insert(inventory).values({
-    partId: inserted.id,
-    quantityOnHand: 0,
-  });
-
-  return { partId: inserted.id, created: true, updated: false };
+  return upsertPartFromImportLine(line.partName, line.description);
 }
 
 export async function importParsedSku(

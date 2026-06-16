@@ -13,7 +13,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "import:skus": "bun scripts/import-skus.ts"
+    "import:skus": "bun scripts/import-skus.ts",
+    "backfill:part-specs": "bun scripts/backfill-part-specs.ts",
+    "sync:parts-from-skus": "bun scripts/sync-parts-from-skus.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

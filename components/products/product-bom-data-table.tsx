@@ -3,9 +3,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ListTreeIcon } from "lucide-react";
 import Link from "next/link";
-
 import { BomImages } from "@/components/bom/bom-images";
 import { DataTable } from "@/components/data-table/data-table";
+import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 
 export type ProductBomLine = {
   id: number;
@@ -18,6 +18,7 @@ export type ProductBomLine = {
   part: {
     id: number;
     name: string;
+    specs: Record<string, string>;
     description: string | null;
     inventory: { quantityOnHand: number } | null;
   };
@@ -51,11 +52,15 @@ export function ProductBomDataTable({ lines }: ProductBomDataTableProps) {
       ),
     },
     {
-      id: "description",
-      header: "Description",
+      id: "specs",
+      header: "Specifications",
       cell: ({ row }) => (
-        <span className="block max-w-xs truncate text-muted-foreground">
-          {row.original.part.description ?? "—"}
+        <span className="block max-w-md truncate">
+          <PartSpecsDisplay
+            specs={row.original.part.specs}
+            description={row.original.part.description}
+            maxLength={120}
+          />
         </span>
       ),
     },
