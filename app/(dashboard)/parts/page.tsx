@@ -1,0 +1,32 @@
+import { DataTablePage } from "@/components/data-table/data-table-page";
+import { PageHeader } from "@/components/page-header";
+import { PartFormDialog } from "@/components/parts/part-form-dialog";
+import { PartsDataTable } from "@/components/parts/parts-data-table";
+import { createPart } from "@/lib/actions/parts";
+import { getPartsPaginated } from "@/lib/data-table/list-queries";
+import { parsePaginationSearchParams } from "@/lib/data-table/pagination";
+
+type PartsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function PartsPage({ searchParams }: PartsPageProps) {
+  const pagination = parsePaginationSearchParams(await searchParams);
+  const result = await getPartsPaginated(pagination);
+
+  return (
+    <DataTablePage
+      header={
+        <PageHeader
+          className="mb-0"
+          title="Parts"
+          description="Manage parts, view stock levels, and linked vendors or products."
+        >
+          <PartFormDialog action={createPart} />
+        </PageHeader>
+      }
+    >
+      <PartsDataTable result={result} />
+    </DataTablePage>
+  );
+}
