@@ -50,7 +50,7 @@ Import via CLI or from the Products page in the app.
 2. Copy environment variables and configure:
 
    ```bash
-   cp .env.example .env.local
+   cp .env.example .env
    ```
 
    Required variables:
@@ -58,6 +58,8 @@ Import via CLI or from the Products page in the app.
    - `DATABASE_URL` — Neon PostgreSQL connection string
    - `IMGBB_API_KEY` — imgbb API key for BOM image uploads (optional; text import works without it)
    - `BLOB_READ_WRITE_TOKEN` — Vercel Blob token for vendor PO PDFs (optional; local fallback in dev)
+
+   If the project is linked to Vercel, pull the Blob token with `bunx vercel env pull .env.vercel.tmp --environment=development --yes` and copy `BLOB_READ_WRITE_TOKEN` into `.env`.
 
 3. Push the database schema:
 
