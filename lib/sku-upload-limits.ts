@@ -1,6 +1,9 @@
-// Vercel route handlers accept up to 4.5 MB request bodies.
-export const SKU_UPLOAD_MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
-export const SKU_UPLOAD_MAX_FILE_SIZE_LABEL = "4 MB";
+// Large Excel files must bypass Vercel's 4.5 MB function body limit via direct Blob upload.
+export const SKU_UPLOAD_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+export const SKU_UPLOAD_MAX_FILE_SIZE_LABEL = "100 MB";
+
+/** Files above this use Blob multipart client upload. */
+export const SKU_UPLOAD_MULTIPART_THRESHOLD_BYTES = 10 * 1024 * 1024;
 
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) {
@@ -24,7 +27,7 @@ export function validateSkuUploadFileSize(file: File): string | null {
 
 export function isBodySizeLimitError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /body exceeded.*limit/i.test(message);
+  return /body exceeded.*limit|FUNCTION_PAYLOAD_TOO_LARGE|413/i.test(message);
 }
 
 export function skuUploadBodySizeLimitMessage(): string {

@@ -13,16 +13,20 @@ export const SKU_EXCEL_CONTENT_TYPES = [
   "application/octet-stream",
 ] as const;
 
-export type SkuExcelBlobUploadMode = "server" | "direct";
+export type SkuExcelBlobUploadMode = "presigned" | "server" | "direct";
 
 export function getSkuExcelBlobUploadMode(): SkuExcelBlobUploadMode {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return "direct";
   }
 
-  // Always stage via the app server. Browser client uploads to Blob fail with
-  // CORS on custom domains and on localhost.
-  return "server";
+  // Browser uploads go directly to Blob via presigned URLs (supports 15MB+ files).
+  if (process.env.VERCEL === "1") {
+    return "presigned";
+  }
+
+  // Local dev: prefer presigned; small files can fall back to /api/sku-import/stage.
+  return "presigned";
 }
 
 function sanitizeFileName(fileName: string): string {
