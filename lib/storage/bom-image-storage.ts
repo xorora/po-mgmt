@@ -2,6 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
 
+import { getBlobAuthOptions } from "@/lib/storage/blob-config";
+
 const LOCAL_STORAGE_DIR = path.join(process.cwd(), ".bom-image-storage");
 
 function contentTypeFromPath(filePath: string): string {
@@ -27,12 +29,14 @@ export async function uploadBomImage(
   const safeKey = sanitizeStorageKey(storageKey);
   const contentType = contentTypeFromPath(safeKey);
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  const auth = getBlobAuthOptions();
+  if (auth) {
     const blob = await put(`bom-images/${safeKey}`, buffer, {
       access: "public",
       contentType,
       addRandomSuffix: false,
       allowOverwrite: true,
+      ...auth,
     });
     return blob.url;
   }

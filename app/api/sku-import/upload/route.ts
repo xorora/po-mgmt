@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 
 import { sanitizeSkuExcelFileName } from "@/lib/sku-excel-path";
 import { SKU_UPLOAD_MAX_FILE_SIZE_BYTES } from "@/lib/sku-upload-limits";
+import { getBlobAuthOptions } from "@/lib/storage/blob-config";
 import {
   isSkuExcelBlobUploadEnabled,
   SKU_EXCEL_BLOB_PREFIX,
@@ -40,6 +41,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const body = (await request.json()) as HandleUploadPresignedBody;
+  const auth = getBlobAuthOptions();
+
+  if (!auth) {
+    return NextResponse.json(
+      { error: "Blob storage is not configured" },
+      { status: 503 },
+    );
+  }
 
   try {
     const jsonResponse = await handleUploadPresigned({
@@ -54,6 +63,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           allowedContentTypes: [...SKU_EXCEL_CONTENT_TYPES],
           maximumSizeInBytes: SKU_UPLOAD_MAX_FILE_SIZE_BYTES,
           validUntil: Date.now() + SIGNED_TOKEN_TTL_MS,
+          ...auth,
         });
 
         return {

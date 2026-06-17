@@ -5,6 +5,11 @@ import {
   sanitizeSkuExcelFileName,
 } from "@/lib/sku-excel-path";
 import { SKU_UPLOAD_MAX_FILE_SIZE_BYTES } from "@/lib/sku-upload-limits";
+import {
+  getBlobAuthOptions,
+  isBlobStorageConfigured,
+  pathnameFromBlobUrl,
+} from "@/lib/storage/blob-config";
 
 export { SKU_EXCEL_BLOB_PREFIX } from "@/lib/sku-excel-path";
 
@@ -16,7 +21,7 @@ export const SKU_EXCEL_CONTENT_TYPES = [
 export type SkuExcelBlobUploadMode = "presigned" | "server" | "direct";
 
 export function getSkuExcelBlobUploadMode(): SkuExcelBlobUploadMode {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobStorageConfigured()) {
     return "direct";
   }
 
@@ -37,7 +42,8 @@ export async function stageSkuExcelToBlob(
   buffer: Buffer,
   fileName: string,
 ): Promise<{ blobUrl: string; fileName: string }> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const auth = getBlobAuthOptions();
+  if (!auth) {
     throw new Error("Blob storage is not configured");
   }
 
@@ -48,6 +54,7 @@ export async function stageSkuExcelToBlob(
     contentType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     addRandomSuffix: true,
+    ...auth,
   });
 
   return {
@@ -96,9 +103,14 @@ async function streamToBuffer(
 export async function downloadSkuExcelBlob(blobUrl: string): Promise<Buffer> {
   assertValidSkuExcelBlobUrl(blobUrl);
 
-  const result = await get(blobUrl, {
+  const auth = getBlobAuthOptions();
+  if (!auth) {
+    throw new Error("Blob storage is not configured");
+  }
+
+  const result = await get(pathnameFromBlobUrl(blobUrl), {
     access: "private",
-    useCache: false,
+    ...auth,
   });
 
   if (result?.statusCode !== 200 || !result.stream) {
@@ -118,5 +130,11 @@ export async function deleteSkuExcelBlob(blobUrl: string): Promise<void> {
   }
 
   assertValidSkuExcelBlobUrl(blobUrl);
-  await del(blobUrl);
+
+  const auth = getBlobAuthOptions();
+  if (!auth) {
+    return;
+  }
+
+  await del(pathnameFromBlobUrl(blobUrl), auth);
 }
