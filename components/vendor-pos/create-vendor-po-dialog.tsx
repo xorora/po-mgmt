@@ -7,14 +7,14 @@ import { toast } from "sonner";
 import { partDisplayLabel } from "@/components/parts/part-specs-display";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  createRestockVendorPoAction,
+  createVendorPoAction,
   getVendorPoParts,
 } from "@/lib/actions/vendor-pos";
 import type { Vendor } from "@/lib/db/schema";
@@ -45,7 +45,7 @@ type LineDraft = {
   quantity: string;
 };
 
-type CreateRestockPoDialogProps = {
+type CreateVendorPoDialogProps = {
   vendors: VendorOption[];
 };
 
@@ -57,7 +57,7 @@ function partLabel(part: PartOption) {
   return partDisplayLabel(part);
 }
 
-export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
+export function CreateVendorPoDialog({ vendors }: CreateVendorPoDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -155,9 +155,9 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
     formData.set("lines", JSON.stringify(payload));
 
     startTransition(async () => {
-      const result = await createRestockVendorPoAction(formData);
+      const result = await createVendorPoAction(formData);
       if (result.success) {
-        toast.success("Restock PO created");
+        toast.success("Vendor PO created");
         setOpen(false);
         if (result.vendorPoId) {
           router.push(`/vendor-pos/${result.vendorPoId}`);
@@ -165,7 +165,7 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
           router.refresh();
         }
       } else {
-        toast.error(result.error ?? "Failed to create restock PO");
+        toast.error(result.error ?? "Failed to create vendor PO");
       }
     });
   }
@@ -179,24 +179,23 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
     !pending;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button disabled={vendors.length === 0}>New restock PO</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create restock PO</DialogTitle>
-          <DialogDescription>
-            Order parts from a vendor to replenish inventory. This PO is not
-            linked to a customer order.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4">
+    <Drawer open={open} onOpenChange={handleOpenChange}>
+      <DrawerTrigger asChild>
+        <Button disabled={vendors.length === 0}>Create PO</Button>
+      </DrawerTrigger>
+      <DrawerContent className="sm:max-w-lg">
+        <DrawerHeader>
+          <DrawerTitle>Create vendor PO</DrawerTitle>
+          <DrawerDescription>
+            Order parts from a vendor. Saving creates version 1 and a PDF.
+          </DrawerDescription>
+        </DrawerHeader>
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="restock-vendor">Vendor</Label>
+            <Label htmlFor="vendor-po-vendor">Vendor</Label>
             {vendors.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Add a vendor and assign parts before creating a restock PO.
+                Add a vendor and assign parts before creating a PO.
               </p>
             ) : (
               <Select
@@ -207,7 +206,7 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
                 }}
                 disabled={pending}
               >
-                <SelectTrigger id="restock-vendor" className="w-full">
+                <SelectTrigger id="vendor-po-vendor" className="w-full">
                   <SelectValue placeholder="Select vendor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -258,7 +257,7 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
                       <div key={line.id} className="flex items-end gap-2">
                         <div className="grid min-w-0 flex-1 gap-1.5">
                           <Label
-                            htmlFor={`restock-part-${index}`}
+                            htmlFor={`vendor-po-part-${index}`}
                             className="text-xs text-muted-foreground"
                           >
                             Part
@@ -271,7 +270,7 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
                             disabled={pending}
                           >
                             <SelectTrigger
-                              id={`restock-part-${index}`}
+                              id={`vendor-po-part-${index}`}
                               className="w-full"
                             >
                               <SelectValue placeholder="Select part" />
@@ -290,13 +289,13 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
                         </div>
                         <div className="grid w-24 gap-1.5">
                           <Label
-                            htmlFor={`restock-qty-${index}`}
+                            htmlFor={`vendor-po-qty-${index}`}
                             className="text-xs text-muted-foreground"
                           >
                             Qty
                           </Label>
                           <Input
-                            id={`restock-qty-${index}`}
+                            id={`vendor-po-qty-${index}`}
                             type="number"
                             min={1}
                             step={1}
@@ -329,13 +328,13 @@ export function CreateRestockPoDialog({ vendors }: CreateRestockPoDialogProps) {
             </div>
           ) : null}
 
-          <DialogFooter className="px-0 pb-0">
+          <DrawerFooter>
             <Button type="submit" disabled={!canSubmit}>
-              {pending ? "Creating…" : "Create restock PO"}
+              {pending ? "Creating…" : "Create PO"}
             </Button>
-          </DialogFooter>
+          </DrawerFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }

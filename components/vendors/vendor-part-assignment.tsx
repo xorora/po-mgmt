@@ -41,7 +41,6 @@ type AssignedPart = {
     name: string;
     specs: Record<string, string>;
     description: string | null;
-    inventory: { quantityOnHand: number } | null;
   };
 };
 
@@ -155,15 +154,6 @@ export function VendorPartAssignment({
             description={row.original.part.description}
             maxLength={100}
           />
-        </span>
-      ),
-    },
-    {
-      id: "onHand",
-      header: () => <span className="block text-right">On hand</span>,
-      cell: ({ row }) => (
-        <span className="block text-right tabular-nums">
-          {row.original.part.inventory?.quantityOnHand ?? 0}
         </span>
       ),
     },

@@ -1,7 +1,10 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { neonConfig, Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import ws from "ws";
 
 import * as schema from "./schema";
+
+neonConfig.webSocketConstructor = ws;
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -11,8 +14,8 @@ function getDatabaseUrl() {
   return url;
 }
 
-const sql = neon(getDatabaseUrl());
+const pool = new Pool({ connectionString: getDatabaseUrl() });
 
-export const db = drizzle(sql, { schema });
+export const db = drizzle(pool, { schema });
 
 export type Database = typeof db;

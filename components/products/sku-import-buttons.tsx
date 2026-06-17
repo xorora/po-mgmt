@@ -55,12 +55,12 @@ export function UploadSkuFilesButton({ action }: UploadSkuFilesButtonProps) {
       }
 
       if (result.success) {
-        toast.success("SKU import completed");
+        toast.success("Excel import completed");
         router.refresh();
         setOpen(false);
         if (input) input.value = "";
       } else {
-        toast.error(result.error ?? "SKU import failed");
+        toast.error(result.error ?? "Excel import failed");
       }
     });
   }
@@ -77,16 +77,16 @@ export function UploadSkuFilesButton({ action }: UploadSkuFilesButtonProps) {
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
         <Button variant="outline" disabled={pending}>
-          Upload Excel files
+          Upload Excel
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>Upload SKU Excel files</AlertDialogTitle>
+          <AlertDialogTitle>Upload product Excel files</AlertDialogTitle>
           <AlertDialogDescription>
             Upload one or more product BOM spreadsheets (.xlsx). Each file
-            creates or updates a product, upserts parts, and uploads BOM images
-            to imgbb when configured.
+            creates or updates a product, upserts parts from the BOM, and
+            extracts part images when present.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid gap-2">
@@ -177,7 +177,7 @@ export function UploadProductBomButton({
         <AlertDialogHeader>
           <AlertDialogTitle>Upload BOM Excel file</AlertDialogTitle>
           <AlertDialogDescription>
-            Upload the SKU spreadsheet for model code {modelCode}. The model
+            Upload the product spreadsheet for model code {modelCode}. The model
             code in the file must match this product. Existing BOM lines will be
             replaced.
           </AlertDialogDescription>

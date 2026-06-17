@@ -11,12 +11,8 @@ import {
 import { db } from "@/lib/db";
 import { vendorPos } from "@/lib/db/schema";
 import {
-  createRestockVendorPo,
-  generateVendorPosForCustomerOrder,
+  createVendorPo,
   getVendorPoParts,
-  markVendorPoDelivered,
-  markVendorPoSent,
-  previewVendorPoGeneration,
   saveVendorPoVersion,
   type VendorPoLineInput,
 } from "@/lib/services/vendor-po";
@@ -51,7 +47,7 @@ function parseVendorPoLines(formData: FormData): VendorPoLineInput[] | null {
   }
 }
 
-export async function createRestockVendorPoAction(
+export async function createVendorPoAction(
   formData: FormData,
 ): Promise<ActionResult & { vendorPoId?: number }> {
   const vendorId = Number(formData.get("vendorId"));
@@ -64,10 +60,10 @@ export async function createRestockVendorPoAction(
     return actionError("Invalid line items");
   }
 
-  const result = await createRestockVendorPo(vendorId, lines);
+  const result = await createVendorPo(vendorId, lines);
 
   if (!result.success) {
-    return actionError(result.error ?? "Failed to create restock PO");
+    return actionError(result.error ?? "Failed to create vendor PO");
   }
 
   revalidatePath("/vendor-pos");
@@ -82,35 +78,7 @@ export async function createRestockVendorPoAction(
   };
 }
 
-export async function generateVendorPosForOrder(
-  formData: FormData,
-): Promise<
-  ActionResult & { vendorPoCount?: number; orderStatus?: "procuring" | "ready" }
-> {
-  const orderId = Number(formData.get("orderId"));
-  if (!Number.isFinite(orderId)) {
-    return actionError("Invalid order id");
-  }
-
-  const result = await generateVendorPosForCustomerOrder(orderId);
-
-  if (!result.success) {
-    return actionError(result.error ?? "Failed to generate vendor POs");
-  }
-
-  revalidatePath("/orders");
-  revalidatePath(`/orders/${orderId}`);
-  revalidatePath("/vendor-pos");
-  revalidatePath("/");
-
-  return {
-    ...actionSuccess(),
-    vendorPoCount: result.vendorPoCount,
-    orderStatus: result.orderStatus,
-  };
-}
-
-export { getVendorPoParts, previewVendorPoGeneration };
+export { getVendorPoParts };
 
 export async function saveVendorPoVersionAction(formData: FormData): Promise<
   ActionResult & {
@@ -150,74 +118,17 @@ export async function saveVendorPoVersionAction(formData: FormData): Promise<
   };
 }
 
-export async function markVendorPoSentAction(
-  formData: FormData,
-): Promise<ActionResult> {
-  const vendorPoId = Number(formData.get("vendorPoId"));
-  if (!Number.isFinite(vendorPoId)) {
-    return actionError("Invalid vendor PO id");
-  }
-
-  const result = await markVendorPoSent(vendorPoId);
-
-  if (!result.success) {
-    return actionError(result.error ?? "Failed to mark vendor PO as sent");
-  }
-
-  revalidatePath("/vendor-pos");
-  revalidatePath(`/vendor-pos/${vendorPoId}`);
-  revalidatePath("/");
-
-  return actionSuccess();
-}
-
-export async function markVendorPoDeliveredAction(formData: FormData): Promise<
-  ActionResult & {
-    orderId?: number | null;
-    orderStatus?: "procuring" | "ready";
-    partsReceived?: number;
-  }
-> {
-  const vendorPoId = Number(formData.get("vendorPoId"));
-  if (!Number.isFinite(vendorPoId)) {
-    return actionError("Invalid vendor PO id");
-  }
-
-  const result = await markVendorPoDelivered(vendorPoId);
-
-  if (!result.success) {
-    return actionError(result.error ?? "Failed to mark vendor PO as delivered");
-  }
-
-  revalidatePath("/vendor-pos");
-  revalidatePath(`/vendor-pos/${vendorPoId}`);
-  revalidatePath("/inventory");
-  revalidatePath("/");
-
-  if (result.orderId) {
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${result.orderId}`);
-  }
-
-  return {
-    ...actionSuccess(),
-    orderId: result.orderId,
-    orderStatus: result.orderStatus,
-    partsReceived: result.partsReceived,
-  };
-}
-
 export async function getVendorPos() {
   return db.query.vendorPos.findMany({
     orderBy: [desc(vendorPos.createdAt)],
     with: {
       vendor: true,
-      customerOrder: true,
       versions: {
         orderBy: (versions, { desc: descVersion }) => [
           descVersion(versions.versionNumber),
         ],
         limit: 1,
+        with: { lines: true },
       },
     },
   });
@@ -228,7 +139,6 @@ export async function getVendorPoById(id: number) {
     where: eq(vendorPos.id, id),
     with: {
       vendor: true,
-      customerOrder: true,
       versions: {
         orderBy: (versions, { desc: descVersion }) => [
           descVersion(versions.versionNumber),

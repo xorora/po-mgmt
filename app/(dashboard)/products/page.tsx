@@ -3,7 +3,10 @@ import { PageHeader } from "@/components/page-header";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
 import { ProductsDataTable } from "@/components/products/products-data-table";
 import { UploadSkuFilesButton } from "@/components/products/sku-import-buttons";
-import { createProduct } from "@/lib/actions/products";
+import {
+  createProduct,
+  getPartsForProductSelection,
+} from "@/lib/actions/products";
 import { uploadSkuFilesAction } from "@/lib/actions/sku-import";
 import { getProductsPaginated } from "@/lib/data-table/list-queries";
 import { parsePaginationSearchParams } from "@/lib/data-table/pagination";
@@ -16,7 +19,10 @@ export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
   const pagination = parsePaginationSearchParams(await searchParams);
-  const result = await getProductsPaginated(pagination);
+  const [result, availableParts] = await Promise.all([
+    getProductsPaginated(pagination),
+    getPartsForProductSelection(),
+  ]);
 
   return (
     <DataTablePage
@@ -28,12 +34,15 @@ export default async function ProductsPage({
         >
           <div className="flex flex-wrap items-center gap-2">
             <UploadSkuFilesButton action={uploadSkuFilesAction} />
-            <ProductFormDialog action={createProduct} />
+            <ProductFormDialog
+              action={createProduct}
+              availableParts={availableParts}
+            />
           </div>
         </PageHeader>
       }
     >
-      <ProductsDataTable result={result} />
+      <ProductsDataTable result={result} availableParts={availableParts} />
     </DataTablePage>
   );
 }

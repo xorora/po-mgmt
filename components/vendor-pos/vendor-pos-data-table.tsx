@@ -5,9 +5,7 @@ import { FileTextIcon } from "lucide-react";
 import Link from "next/link";
 
 import { DataTable } from "@/components/data-table/data-table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { VendorPoStatusBadge } from "@/components/vendor-pos/vendor-po-status-badge";
 import type { VendorPoListRow } from "@/lib/data-table/list-queries";
 import type { PaginatedResult } from "@/lib/data-table/pagination";
 
@@ -42,40 +40,20 @@ export function VendorPosDataTable({ result }: VendorPosDataTableProps) {
       cell: ({ row }) => row.original.vendor.name,
     },
     {
-      accessorKey: "type",
-      header: "Type",
-      cell: ({ row }) => (
-        <Badge variant="secondary">
-          {row.original.type === "customer_derived" ? "Order" : "Restock"}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => <VendorPoStatusBadge status={row.original.status} />,
-    },
-    {
-      id: "customerOrder",
-      header: "Customer order",
-      cell: ({ row }) =>
-        row.original.customerOrder ? (
-          <Link
-            href={`/orders/${row.original.customerOrder.id}`}
-            className="hover:underline"
-          >
-            Order #{row.original.customerOrder.id}
-          </Link>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
-    },
-    {
       id: "version",
       header: "Version",
       cell: ({ row }) => (
         <span className="tabular-nums text-muted-foreground">
           v{row.original.versions[0]?.versionNumber ?? 1}
+        </span>
+      ),
+    },
+    {
+      id: "lineCount",
+      header: "Lines",
+      cell: ({ row }) => (
+        <span className="tabular-nums text-muted-foreground">
+          {row.original.versions[0]?.lines.length ?? 0}
         </span>
       ),
     },
@@ -109,8 +87,7 @@ export function VendorPosDataTable({ result }: VendorPosDataTableProps) {
       pageCount={result.pageCount}
       emptyState={{
         title: "No vendor POs",
-        description:
-          "Generate POs from a customer order or create a restock PO to replenish inventory.",
+        description: "Create a vendor PO to order parts from a supplier.",
         icon: FileTextIcon,
       }}
     />

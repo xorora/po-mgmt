@@ -21,7 +21,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 function revalidateAfterImport() {
   revalidatePath("/products");
   revalidatePath("/parts");
-  revalidatePath("/inventory");
   revalidatePath("/");
 }
 
@@ -106,7 +105,7 @@ export async function uploadSkuFilesAction(
     return buildImportActionResult(summary);
   } catch (error) {
     return actionError(
-      error instanceof Error ? error.message : "SKU import failed",
+      error instanceof Error ? error.message : "Excel import failed",
     );
   }
 }

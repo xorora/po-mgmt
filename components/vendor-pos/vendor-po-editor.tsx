@@ -1,7 +1,6 @@
 "use client";
 
 import { FileDownIcon, MinusIcon, PlusIcon } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -42,12 +41,9 @@ type VendorPoEditorProps = {
   vendorPoId: number;
   initialLines: Array<{
     partId: number;
-    partName: string;
-    partDescription: string | null;
     quantity: number;
   }>;
   availableParts: PartOption[];
-  canEdit: boolean;
 };
 
 function linesFromInitial(
@@ -68,7 +64,6 @@ export function VendorPoEditor({
   vendorPoId,
   initialLines,
   availableParts,
-  canEdit,
 }: VendorPoEditorProps) {
   const router = useRouter();
   const [lines, setLines] = useState<EditorLine[]>(
@@ -136,53 +131,6 @@ export function VendorPoEditor({
         toast.error(result.error ?? "Failed to save");
       }
     });
-  }
-
-  if (!canEdit) {
-    return (
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Part</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {initialLines.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={3}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No lines on this version.
-                </TableCell>
-              </TableRow>
-            ) : (
-              initialLines.map((line) => (
-                <TableRow key={line.partId}>
-                  <TableCell>
-                    <Link
-                      href={`/parts/${line.partId}`}
-                      className="font-medium hover:underline"
-                    >
-                      {line.partName}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate text-muted-foreground">
-                    {line.partDescription ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {line.quantity}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    );
   }
 
   return (

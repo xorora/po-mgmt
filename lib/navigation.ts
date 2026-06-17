@@ -4,9 +4,7 @@ import {
   LayoutDashboard,
   Package,
   Puzzle,
-  ShoppingCart,
   Store,
-  Warehouse,
 } from "lucide-react";
 
 export type NavItem = {
@@ -21,8 +19,6 @@ export const navItems: NavItem[] = [
   { href: "/vendors", label: "Vendors", icon: Store },
   { href: "/parts", label: "Parts", icon: Puzzle },
   { href: "/products", label: "Products", icon: Package },
-  { href: "/inventory", label: "Inventory", icon: Warehouse },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/vendor-pos", label: "Vendor POs", icon: ClipboardList },
 ];
 

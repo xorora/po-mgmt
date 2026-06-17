@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
-import { ProductBomDataTable } from "@/components/products/product-bom-data-table";
+import { ProductBomEditor } from "@/components/products/product-bom-editor";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
 import { UploadProductBomButton } from "@/components/products/sku-import-buttons";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getProductById, updateProduct } from "@/lib/actions/products";
+import {
+  getPartsForProductSelection,
+  getProductById,
+  updateProduct,
+} from "@/lib/actions/products";
 import { uploadProductBomAction } from "@/lib/actions/sku-import";
 
 type ProductDetailPageProps = {
@@ -27,6 +31,8 @@ export default async function ProductDetailPage({
 
   const product = await getProductById(id);
   if (!product) notFound();
+
+  const availableParts = await getPartsForProductSelection();
 
   const bomLines = [...product.productParts].sort((a, b) => {
     const aNo = a.itemNo ?? "";
@@ -69,9 +75,14 @@ export default async function ProductDetailPage({
       <section className="space-y-3">
         <h2 className="font-heading text-lg font-medium">Bill of materials</h2>
         <p className="text-sm text-muted-foreground">
-          Upload an Excel BOM file or view part details to assign vendors.
+          Define which parts make up this product. BOM is for reference when
+          building vendor purchase orders.
         </p>
-        <ProductBomDataTable lines={bomLines} />
+        <ProductBomEditor
+          productId={product.id}
+          lines={bomLines}
+          availableParts={availableParts}
+        />
       </section>
     </>
   );

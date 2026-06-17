@@ -205,6 +205,17 @@
 }
 
 @layer base {
+  /* Vaul adds oversized ::after pseudo-elements for drag overflow; clip them. */
+  [data-vaul-drawer][data-vaul-drawer-direction="bottom"]::after,
+  [data-vaul-drawer][data-vaul-drawer-direction="top"]::after {
+    height: unset;
+  }
+
+  [data-vaul-drawer][data-vaul-drawer-direction="left"]::after,
+  [data-vaul-drawer][data-vaul-drawer-direction="right"]::after {
+    width: unset;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

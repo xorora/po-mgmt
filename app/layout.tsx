@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PO Management",
   description:
-    "Purchase order management for customer orders, vendor procurement, and fulfillment.",
+    "Vendor purchase order management with versioned PDFs, parts, products, and BOM reference.",
 };
 
 export default function RootLayout({

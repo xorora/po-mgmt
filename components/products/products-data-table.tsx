@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   createProduct,
   deleteProduct,
+  type PartOptionForProduct,
   updateProduct,
 } from "@/lib/actions/products";
 import { uploadSkuFilesAction } from "@/lib/actions/sku-import";
@@ -21,9 +22,13 @@ import type { PaginatedResult } from "@/lib/data-table/pagination";
 
 type ProductsDataTableProps = {
   result: PaginatedResult<ProductListRow>;
+  availableParts: PartOptionForProduct[];
 };
 
-export function ProductsDataTable({ result }: ProductsDataTableProps) {
+export function ProductsDataTable({
+  result,
+  availableParts,
+}: ProductsDataTableProps) {
   const columns: ColumnDef<ProductListRow>[] = [
     {
       accessorKey: "displayName",
@@ -84,12 +89,15 @@ export function ProductsDataTable({ result }: ProductsDataTableProps) {
       emptyState={{
         title: "No products yet",
         description:
-          "Upload Excel BOM files or add a product manually to get started.",
+          "Upload an Excel BOM file or add a product manually to get started.",
         icon: BoxIcon,
         content: (
           <div className="flex flex-wrap items-center justify-center gap-2">
             <UploadSkuFilesButton action={uploadSkuFilesAction} />
-            <ProductFormDialog action={createProduct} />
+            <ProductFormDialog
+              action={createProduct}
+              availableParts={availableParts}
+            />
           </div>
         ),
       }}

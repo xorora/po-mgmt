@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,21 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MarkDeliveredButton } from "@/components/vendor-pos/mark-delivered-button";
-import { MarkSentButton } from "@/components/vendor-pos/mark-sent-button";
 import {
   VendorPoEditor,
   VendorPoVersionHistory,
 } from "@/components/vendor-pos/vendor-po-editor";
-import { VendorPoStatusBadge } from "@/components/vendor-pos/vendor-po-status-badge";
-import { VendorPoWorkflowSteps } from "@/components/vendor-pos/vendor-po-workflow-steps";
-import {
-  getVendorPoById,
-  getVendorPoParts,
-  markVendorPoDeliveredAction,
-  markVendorPoSentAction,
-} from "@/lib/actions/vendor-pos";
-import { formatPartSpecs } from "@/lib/services/part-specs";
+import { getVendorPoById, getVendorPoParts } from "@/lib/actions/vendor-pos";
 
 type VendorPoDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -52,13 +41,10 @@ export default async function VendorPoDetailPage({
   const latestVersion = vendorPo.versions[0];
   const totalQuantity =
     latestVersion?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0;
-  const canEdit = vendorPo.status !== "delivered";
 
   const editorLines =
     latestVersion?.lines.map((line) => ({
       partId: line.part.id,
-      partName: line.part.name,
-      partDescription: formatPartSpecs(line.part),
       quantity: line.quantity,
     })) ?? [];
 
@@ -74,34 +60,6 @@ export default async function VendorPoDetailPage({
         title={`Vendor PO #${vendorPo.id}`}
         description={`Created ${formatDate(vendorPo.createdAt)} · ${vendorPo.vendor.name}`}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          {vendorPo.status === "draft" ? (
-            <MarkSentButton
-              vendorPoId={vendorPo.id}
-              action={markVendorPoSentAction}
-            />
-          ) : null}
-          {vendorPo.status === "sent" ? (
-            <MarkDeliveredButton
-              vendorPoId={vendorPo.id}
-              action={markVendorPoDeliveredAction}
-            />
-          ) : null}
-        </div>
-      </PageHeader>
-
-      <div className="mb-8 flex flex-wrap items-center gap-3">
-        <VendorPoStatusBadge status={vendorPo.status} />
-        <Badge variant="outline">
-          {vendorPo.type === "customer_derived" ? "Customer order" : "Restock"}
-        </Badge>
-        {vendorPo.customerOrder ? (
-          <Button variant="link" className="h-auto p-0" asChild>
-            <Link href={`/orders/${vendorPo.customerOrder.id}`}>
-              Linked to order #{vendorPo.customerOrder.id}
-            </Link>
-          </Button>
-        ) : null}
         {latestVersion?.pdfUrl ? (
           <Button variant="outline" size="sm" asChild>
             <a
@@ -114,12 +72,7 @@ export default async function VendorPoDetailPage({
             </a>
           </Button>
         ) : null}
-      </div>
-
-      <section className="mb-8 space-y-3">
-        <h2 className="font-heading text-lg font-medium">PO workflow</h2>
-        <VendorPoWorkflowSteps status={vendorPo.status} />
-      </section>
+      </PageHeader>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <Card>
@@ -155,22 +108,16 @@ export default async function VendorPoDetailPage({
 
       <section className="space-y-3">
         <div>
-          <h2 className="font-heading text-lg font-medium">
-            {canEdit
-              ? "Edit lines"
-              : `Version ${latestVersion?.versionNumber ?? 1} lines`}
-          </h2>
+          <h2 className="font-heading text-lg font-medium">Edit lines</h2>
           <p className="text-sm text-muted-foreground">
-            {canEdit
-              ? "Add, remove, or change quantities. Saving creates a new version and PDF."
-              : "This PO has been delivered and can no longer be edited."}
+            Add, remove, or change quantities. Saving creates a new version and
+            PDF.
           </p>
         </div>
         <VendorPoEditor
           vendorPoId={vendorPo.id}
           initialLines={editorLines}
           availableParts={vendorParts}
-          canEdit={canEdit}
         />
       </section>
 

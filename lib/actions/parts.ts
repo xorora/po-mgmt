@@ -10,10 +10,8 @@ import {
 } from "@/lib/actions/types";
 import { db } from "@/lib/db";
 import { parts } from "@/lib/db/schema";
-import { ensureInventoryRow } from "@/lib/services/inventory";
-import { parseSpecsJson } from "@/lib/services/part-specs";
+import { normalizePartName, parseSpecsJson } from "@/lib/services/part-specs";
 import { upsertPartRecord } from "@/lib/services/parts-catalog";
-import { normalizePartName } from "@/lib/services/sku-import";
 
 function readOptionalString(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -40,17 +38,14 @@ export async function createPart(formData: FormData): Promise<ActionResult> {
   }
 
   try {
-    const { partId } = await upsertPartRecord({
+    await upsertPartRecord({
       name: name.trim(),
       category: readOptionalString(formData, "category"),
       specs: parseSpecsJson(readOptionalString(formData, "specs")),
       description: readOptionalString(formData, "description"),
       mergeStrategy: "manual",
     });
-
-    await ensureInventoryRow(partId);
     revalidatePath("/parts");
-    revalidatePath("/inventory");
     return actionSuccess();
   } catch {
     return actionError("Failed to create part");
@@ -91,7 +86,6 @@ export async function updatePart(formData: FormData): Promise<ActionResult> {
       .where(eq(parts.id, id));
     revalidatePath("/parts");
     revalidatePath(`/parts/${id}`);
-    revalidatePath("/inventory");
     return actionSuccess();
   } catch {
     return actionError("Failed to update part");
@@ -105,7 +99,6 @@ export async function deletePart(formData: FormData): Promise<ActionResult> {
   try {
     await db.delete(parts).where(eq(parts.id, id));
     revalidatePath("/parts");
-    revalidatePath("/inventory");
     return actionSuccess();
   } catch {
     return actionError(
@@ -118,7 +111,6 @@ export async function getPartById(id: number) {
   return db.query.parts.findFirst({
     where: eq(parts.id, id),
     with: {
-      inventory: true,
       vendorParts: { with: { vendor: true } },
       productParts: { with: { product: true } },
     },

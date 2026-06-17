@@ -1,3 +1,4 @@
+import path from "node:path";
 import { eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
 
@@ -10,8 +11,8 @@ import {
   emptyBomRowImageUrls,
   extractImagesFromXlsxBuffer,
 } from "@/lib/services/excel-images";
-import { getImgbbApiKey, uploadImageToImgbb } from "@/lib/services/imgbb";
 import { upsertPartFromImportLine } from "@/lib/services/parts-catalog";
+import { uploadBomImage } from "@/lib/storage/bom-image-storage";
 
 const BOM_START_ROW = 5; // 0-indexed row 6
 const COL = {
@@ -77,10 +78,6 @@ export type ImportSummary = {
   imagesFailed: number;
   fileResults: FileImportResult[];
 };
-
-export function normalizePartName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
-}
 
 function cellValue(
   sheet: XLSX.WorkSheet,
@@ -230,37 +227,35 @@ async function uploadImagesForParsedSku(
     return stats;
   }
 
-  if (!getImgbbApiKey()) {
-    stats.imagesSkipped = true;
-    return stats;
-  }
-
   const urlsByRow = new Map<number, BomRowImageUrls>();
 
   for (const image of images) {
     const line = parsed.bomLines.find(
       (entry) => entry.rowNumber === image.rowNumber,
     );
+    const ext = path.extname(image.mediaPath) || ".png";
     const uploadName = [
       parsed.modelCode,
       line?.itemNo ?? `row-${image.rowNumber}`,
       image.view,
     ].join("-");
 
-    const result = await uploadImageToImgbb(image.buffer, uploadName);
-    if ("error" in result) {
+    try {
+      const url = await uploadBomImage(
+        image.buffer,
+        `${parsed.modelCode}/${uploadName}${ext}`,
+      );
+      stats.imagesUploaded++;
+
+      let rowUrls = urlsByRow.get(image.rowNumber);
+      if (!rowUrls) {
+        rowUrls = emptyBomRowImageUrls();
+        urlsByRow.set(image.rowNumber, rowUrls);
+      }
+      applyImageUrl(rowUrls, image.view, url);
+    } catch {
       stats.imagesFailed++;
-      continue;
     }
-
-    stats.imagesUploaded++;
-
-    let rowUrls = urlsByRow.get(image.rowNumber);
-    if (!rowUrls) {
-      rowUrls = emptyBomRowImageUrls();
-      urlsByRow.set(image.rowNumber, rowUrls);
-    }
-    applyImageUrl(rowUrls, image.view, result.url);
   }
 
   for (const line of parsed.bomLines) {
@@ -273,6 +268,12 @@ async function uploadImagesForParsedSku(
   return stats;
 }
 
+async function upsertPart(
+  line: ParsedBomLine,
+): Promise<{ partId: number; created: boolean; updated: boolean }> {
+  return upsertPartFromImportLine(line.partName, line.description);
+}
+
 export async function attachImagesToParsedSkuFromBuffer(
   parsed: ParsedSkuFile,
   buffer: Buffer,
@@ -283,12 +284,6 @@ export async function attachImagesToParsedSkuFromBuffer(
     validRows,
   );
   return uploadImagesForParsedSku(parsed, images, imagesExtracted);
-}
-
-async function upsertPart(
-  line: ParsedBomLine,
-): Promise<{ partId: number; created: boolean; updated: boolean }> {
-  return upsertPartFromImportLine(line.partName, line.description);
 }
 
 export async function importParsedSku(
@@ -448,32 +443,6 @@ export async function importSkuDirectory(
   return summarizeImportResults(fileResults);
 }
 
-export async function findSkuFilePathForModelCode(
-  directoryPath: string,
-  modelCode: string,
-): Promise<string | null> {
-  const { readdir } = await import("node:fs/promises");
-  const { join } = await import("node:path");
-
-  const normalizedTarget = modelCode.trim().toLowerCase();
-  const entries = await readdir(directoryPath);
-  const files = entries
-    .filter((name) => name.toLowerCase().endsWith(".xlsx"))
-    .sort();
-
-  for (const file of files) {
-    const filePath = join(directoryPath, file);
-    try {
-      const parsed = parseSkuFile(filePath);
-      if (parsed.modelCode.trim().toLowerCase() === normalizedTarget) {
-        return filePath;
-      }
-    } catch {}
-  }
-
-  return null;
-}
-
 export function summarizeImportResults(
   fileResults: FileImportResult[],
 ): ImportSummary {
@@ -520,8 +489,8 @@ export function summarizeImportResults(
 
 export function formatImportSummary(summary: ImportSummary): string {
   const lines: string[] = [
-    "SKU Import Summary",
-    "==================",
+    "Excel Import Summary",
+    "====================",
     `Files processed: ${summary.filesProcessed}`,
     `Files failed: ${summary.filesFailed}`,
     `Products created: ${summary.productsCreated}`,
@@ -553,7 +522,7 @@ export function formatImportSummary(summary: ImportSummary): string {
     lines.push(
       `  ✓ ${result.fileName} (${result.modelCode})`,
       `      ${result.bomLinesImported} BOM lines, ${result.partsCreated} new parts, ${result.partsUpdated} updated parts${flags ? `, ${flags}` : ""}`,
-      `      Images: ${result.imagesExtracted} extracted, ${result.imagesUploaded} uploaded${result.imagesFailed > 0 ? `, ${result.imagesFailed} failed` : ""}${result.imagesSkipped ? " (upload skipped — no IMGBB_API_KEY)" : ""}`,
+      `      Images: ${result.imagesExtracted} extracted, ${result.imagesUploaded} uploaded${result.imagesFailed > 0 ? `, ${result.imagesFailed} failed` : ""}`,
     );
 
     if (result.skippedRows.length > 0) {

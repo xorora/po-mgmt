@@ -4,29 +4,33 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { PartMultiSelect } from "@/components/products/part-multi-select";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { PartOptionForProduct } from "@/lib/actions/products";
 import type { ActionResult } from "@/lib/actions/types";
 import type { Product } from "@/lib/db/schema";
 
 type ProductFormDialogProps = {
   product?: Product;
+  availableParts?: PartOptionForProduct[];
   action: (formData: FormData) => Promise<ActionResult>;
   triggerLabel?: string;
 };
 
 export function ProductFormDialog({
   product,
+  availableParts = [],
   action,
   triggerLabel,
 }: ProductFormDialogProps) {
@@ -48,26 +52,30 @@ export function ProductFormDialog({
     });
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={handleOpenChange}>
+      <DrawerTrigger asChild>
         <Button
           variant={isEdit ? "outline" : "default"}
           size={isEdit ? "sm" : "default"}
         >
           {triggerLabel ?? (isEdit ? "Edit" : "Add product")}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit product" : "Add product"}</DialogTitle>
-          <DialogDescription>
+      </DrawerTrigger>
+      <DrawerContent className={isEdit ? "sm:max-w-md" : "sm:max-w-lg"}>
+        <DrawerHeader>
+          <DrawerTitle>{isEdit ? "Edit product" : "Add product"}</DrawerTitle>
+          <DrawerDescription>
             {isEdit
               ? "Update product identifiers."
-              : "Create a product manually, then add its BOM by uploading an Excel file."}
-          </DialogDescription>
-        </DialogHeader>
-        <form action={handleSubmit} className="grid gap-4">
+              : "Create a product and select the parts that make it up."}
+          </DrawerDescription>
+        </DrawerHeader>
+        <form action={handleSubmit} className="flex flex-1 flex-col gap-4">
           {product ? (
             <input type="hidden" name="id" value={product.id} />
           ) : null}
@@ -80,6 +88,7 @@ export function ProductFormDialog({
               name="modelCode"
               defaultValue={product?.modelCode ?? ""}
               required
+              disabled={pending}
             />
           </div>
           <div className="grid gap-2">
@@ -91,15 +100,19 @@ export function ProductFormDialog({
               name="displayName"
               defaultValue={product?.displayName ?? ""}
               required
+              disabled={pending}
             />
           </div>
-          <DialogFooter className="px-0 pb-0">
+          {!isEdit ? (
+            <PartMultiSelect parts={availableParts} disabled={pending} />
+          ) : null}
+          <DrawerFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : isEdit ? "Save changes" : "Create product"}
             </Button>
-          </DialogFooter>
+          </DrawerFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }

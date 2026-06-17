@@ -2,14 +2,14 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import type { PartSpecs } from "@/lib/db/schema";
-import { inventory, parts } from "@/lib/db/schema";
+import { parts } from "@/lib/db/schema";
 import {
   buildPartInputFromImport,
   mergeSpecs,
+  normalizePartName,
   type PartCategory,
   type SpecMergeStrategy,
 } from "@/lib/services/part-specs";
-import { normalizePartName } from "@/lib/services/sku-import";
 
 export type PartUpsertInput = {
   name: string;
@@ -112,11 +112,6 @@ export async function upsertPartRecord(
     })
     .returning({ id: parts.id });
 
-  await db.insert(inventory).values({
-    partId: inserted.id,
-    quantityOnHand: 0,
-  });
-
   return { partId: inserted.id, created: true, updated: false };
 }
 
@@ -136,97 +131,4 @@ export async function upsertPartFromImportLine(
     description,
     mergeStrategy: "import",
   });
-}
-
-export type SkuPartSyncSummary = {
-  filesProcessed: number;
-  partsInSkus: number;
-  partsUpdated: number;
-  partsSkipped: number;
-  partsMissingFromDb: number;
-};
-
-export async function syncExistingPartsFromSkuDirectory(
-  directoryPath: string,
-): Promise<SkuPartSyncSummary> {
-  const { readdir } = await import("node:fs/promises");
-  const { join } = await import("node:path");
-  const { parseSkuFile, normalizePartName } = await import(
-    "@/lib/services/sku-import"
-  );
-
-  const entries = await readdir(directoryPath);
-  const files = entries
-    .filter((name) => name.toLowerCase().endsWith(".xlsx"))
-    .sort();
-
-  const canonicalByPart = new Map<
-    string,
-    {
-      partName: string;
-      category: PartCategory | string | null;
-      specs: PartSpecs;
-      description: string | null;
-    }
-  >();
-
-  for (const file of files) {
-    const parsed = parseSkuFile(join(directoryPath, file));
-    for (const line of parsed.bomLines) {
-      const normalizedName = normalizePartName(line.partName);
-      const incoming = buildPartInputFromImport(
-        line.partName,
-        line.description,
-      );
-      const existing = canonicalByPart.get(normalizedName);
-      const incomingDescriptionLength = line.description?.length ?? 0;
-      const existingDescriptionLength = existing?.description?.length ?? 0;
-
-      if (!existing || incomingDescriptionLength > existingDescriptionLength) {
-        canonicalByPart.set(normalizedName, {
-          partName: line.partName,
-          category: incoming.category,
-          specs: incoming.specs,
-          description: incoming.description,
-        });
-      }
-    }
-  }
-
-  let partsUpdated = 0;
-  let partsSkipped = 0;
-  let partsMissingFromDb = 0;
-
-  for (const [, source] of canonicalByPart) {
-    const normalizedName = normalizePartName(source.partName);
-    const [existing] = await db
-      .select({ id: parts.id })
-      .from(parts)
-      .where(eq(parts.normalizedName, normalizedName))
-      .limit(1);
-
-    if (!existing) {
-      partsMissingFromDb++;
-      continue;
-    }
-
-    const result = await upsertPartRecord({
-      name: source.partName,
-      category: source.category,
-      specs: source.specs,
-      description: source.description,
-      mergeStrategy: "replace",
-    });
-
-    if (result.updated) partsUpdated++;
-    else partsSkipped++;
-  }
-
-  return {
-    filesProcessed: files.length,
-    partsInSkus: canonicalByPart.size,
-    partsUpdated,
-    partsSkipped,
-    partsMissingFromDb,
-  };
 }

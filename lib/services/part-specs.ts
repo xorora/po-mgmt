@@ -277,6 +277,10 @@ export function rowsToSpecs(rows: { key: string; value: string }[]): PartSpecs {
   return specs;
 }
 
+export function normalizePartName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export function buildPartInputFromImport(
   partName: string,
   rawDescription: string | null,

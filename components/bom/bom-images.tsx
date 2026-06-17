@@ -3,12 +3,12 @@
 import Image from "next/image";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 export type BomImageSet = {
   imageSideUrl: string | null;
@@ -24,8 +24,8 @@ type BomImageThumbnailProps = {
 
 function BomImageThumbnail({ url, label, alt }: BomImageThumbnailProps) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Drawer>
+      <DrawerTrigger asChild>
         <button
           type="button"
           className="group relative block size-10 overflow-hidden rounded border bg-muted"
@@ -35,26 +35,28 @@ function BomImageThumbnail({ url, label, alt }: BomImageThumbnailProps) {
             src={url}
             alt={alt}
             fill
+            unoptimized
             sizes="40px"
             className="object-cover transition-opacity group-hover:opacity-80"
           />
         </button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{label}</DialogTitle>
-        </DialogHeader>
+      </DrawerTrigger>
+      <DrawerContent className="max-w-lg">
+        <DrawerHeader>
+          <DrawerTitle>{label}</DrawerTitle>
+        </DrawerHeader>
         <div className="relative aspect-square w-full overflow-hidden rounded-md border bg-muted">
           <Image
             src={url}
             alt={alt}
             fill
+            unoptimized
             sizes="(max-width: 512px) 100vw, 512px"
             className="object-contain"
           />
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
@@ -135,18 +137,14 @@ export function PartImageGallery({ images, partName }: PartImageGalleryProps) {
   );
 
   if (views.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No part images from BOM imports yet.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">No part images yet.</p>;
   }
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {views.map((view) => (
-        <Dialog key={view.key}>
-          <DialogTrigger asChild>
+        <Drawer key={view.key}>
+          <DrawerTrigger asChild>
             <button
               type="button"
               className="group overflow-hidden rounded-lg border bg-muted text-left"
@@ -156,6 +154,7 @@ export function PartImageGallery({ images, partName }: PartImageGalleryProps) {
                   src={view.url}
                   alt={`${partName} — ${view.label} view`}
                   fill
+                  unoptimized
                   sizes="(max-width: 640px) 100vw, 200px"
                   className="object-cover transition-opacity group-hover:opacity-90"
                 />
@@ -164,24 +163,25 @@ export function PartImageGallery({ images, partName }: PartImageGalleryProps) {
                 {view.label}
               </div>
             </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
+          </DrawerTrigger>
+          <DrawerContent className="max-w-2xl">
+            <DrawerHeader>
+              <DrawerTitle>
                 {partName} — {view.label}
-              </DialogTitle>
-            </DialogHeader>
+              </DrawerTitle>
+            </DrawerHeader>
             <div className="relative aspect-square w-full overflow-hidden rounded-md border bg-muted">
               <Image
                 src={view.url}
                 alt={`${partName} — ${view.label} view`}
                 fill
+                unoptimized
                 sizes="(max-width: 768px) 100vw, 672px"
                 className="object-contain"
               />
             </div>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
       ))}
     </div>
   );

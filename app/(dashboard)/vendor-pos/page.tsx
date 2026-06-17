@@ -1,6 +1,6 @@
 import { DataTablePage } from "@/components/data-table/data-table-page";
 import { PageHeader } from "@/components/page-header";
-import { CreateRestockPoDialog } from "@/components/vendor-pos/create-restock-po-dialog";
+import { CreateVendorPoDialog } from "@/components/vendor-pos/create-vendor-po-dialog";
 import { VendorPosDataTable } from "@/components/vendor-pos/vendor-pos-data-table";
 import { getVendors } from "@/lib/actions/vendors";
 import { getVendorPosPaginated } from "@/lib/data-table/list-queries";
@@ -25,9 +25,9 @@ export default async function VendorPosPage({
         <PageHeader
           className="mb-0"
           title="Vendor POs"
-          description="Purchase orders sent to vendors, grouped by supplier and linked to customer orders when applicable."
+          description="Purchase orders for parts from vendors. Each save creates a new version and PDF."
         >
-          <CreateRestockPoDialog vendors={vendors} />
+          <CreateVendorPoDialog vendors={vendors} />
         </PageHeader>
       }
     >

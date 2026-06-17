@@ -141,7 +141,7 @@ export async function getVendorById(id: number) {
     where: eq(vendors.id, id),
     with: {
       vendorParts: {
-        with: { part: { with: { inventory: true } } },
+        with: { part: true },
       },
     },
   });

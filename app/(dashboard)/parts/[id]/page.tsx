@@ -8,7 +8,6 @@ import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -68,20 +67,7 @@ export default async function PartDetailPage({ params }: PartDetailPageProps) {
         />
       </section>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>On hand</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
-              {part.inventory?.quantityOnHand ?? 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/inventory">Adjust in inventory</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Vendors</CardDescription>

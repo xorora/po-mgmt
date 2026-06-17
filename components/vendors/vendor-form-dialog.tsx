@@ -6,14 +6,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,25 +50,25 @@ export function VendorFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         <Button
           variant={isEdit ? "outline" : "default"}
           size={isEdit ? "sm" : "default"}
         >
           {triggerLabel ?? (isEdit ? "Edit" : "Add vendor")}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit vendor" : "Add vendor"}</DialogTitle>
-          <DialogDescription>
+      </DrawerTrigger>
+      <DrawerContent className="sm:max-w-md">
+        <DrawerHeader>
+          <DrawerTitle>{isEdit ? "Edit vendor" : "Add vendor"}</DrawerTitle>
+          <DrawerDescription>
             {isEdit
               ? "Update vendor contact details."
               : "Create a new vendor for purchase order routing."}
-          </DialogDescription>
-        </DialogHeader>
-        <form action={handleSubmit} className="grid gap-4">
+          </DrawerDescription>
+        </DrawerHeader>
+        <form action={handleSubmit} className="flex flex-1 flex-col gap-4">
           {vendor ? <input type="hidden" name="id" value={vendor.id} /> : null}
           <div className="grid gap-2">
             <Label htmlFor={`vendor-name-${vendor?.id ?? "new"}`}>Name</Label>
@@ -117,13 +117,13 @@ export function VendorFormDialog({
               defaultValue={vendor?.address ?? ""}
             />
           </div>
-          <DialogFooter className="px-0 pb-0">
+          <DrawerFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : isEdit ? "Save changes" : "Create vendor"}
             </Button>
-          </DialogFooter>
+          </DrawerFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }

@@ -1,5 +1,4 @@
 import { asc, count, desc, eq } from "drizzle-orm";
-import type { getCustomerOrders } from "@/lib/actions/orders";
 import type { getVendorPos } from "@/lib/actions/vendor-pos";
 import {
   buildPaginatedResult,
@@ -9,8 +8,6 @@ import {
 } from "@/lib/data-table/pagination";
 import { db } from "@/lib/db";
 import {
-  customerOrders,
-  inventory,
   parts,
   productParts,
   products,
@@ -18,30 +15,6 @@ import {
   vendorPos,
   vendors,
 } from "@/lib/db/schema";
-
-export async function getCustomerOrdersPaginated(
-  pagination: PaginationParams,
-): Promise<
-  PaginatedResult<Awaited<ReturnType<typeof getCustomerOrders>>[number]>
-> {
-  const offset = getPaginationOffset(pagination);
-
-  const [totalResult, rows] = await Promise.all([
-    db.select({ total: count() }).from(customerOrders),
-    db.query.customerOrders.findMany({
-      orderBy: [desc(customerOrders.createdAt)],
-      limit: pagination.pageSize,
-      offset,
-      with: {
-        lines: {
-          with: { product: true },
-        },
-      },
-    }),
-  ]);
-
-  return buildPaginatedResult(rows, totalResult[0]?.total ?? 0, pagination);
-}
 
 export async function getPartsPaginated(pagination: PaginationParams) {
   const offset = getPaginationOffset(pagination);
@@ -58,15 +31,13 @@ export async function getPartsPaginated(pagination: PaginationParams) {
         description: parts.description,
         createdAt: parts.createdAt,
         updatedAt: parts.updatedAt,
-        quantityOnHand: inventory.quantityOnHand,
         vendorCount: count(vendorParts.id),
         productCount: count(productParts.id),
       })
       .from(parts)
-      .leftJoin(inventory, eq(inventory.partId, parts.id))
       .leftJoin(vendorParts, eq(vendorParts.partId, parts.id))
       .leftJoin(productParts, eq(productParts.partId, parts.id))
-      .groupBy(parts.id, inventory.quantityOnHand)
+      .groupBy(parts.id)
       .orderBy(asc(parts.name))
       .limit(pagination.pageSize)
       .offset(offset),
@@ -140,34 +111,6 @@ export type VendorListRow = Awaited<
   ReturnType<typeof getVendorsPaginated>
 >["rows"][number];
 
-export async function getInventoryPaginated(pagination: PaginationParams) {
-  const offset = getPaginationOffset(pagination);
-
-  const [totalResult, rows] = await Promise.all([
-    db.select({ total: count() }).from(parts),
-    db
-      .select({
-        partId: parts.id,
-        partName: parts.name,
-        specs: parts.specs,
-        description: parts.description,
-        quantityOnHand: inventory.quantityOnHand,
-        updatedAt: inventory.updatedAt,
-      })
-      .from(parts)
-      .leftJoin(inventory, eq(inventory.partId, parts.id))
-      .orderBy(asc(parts.name))
-      .limit(pagination.pageSize)
-      .offset(offset),
-  ]);
-
-  return buildPaginatedResult(rows, totalResult[0]?.total ?? 0, pagination);
-}
-
-export type InventoryListRow = Awaited<
-  ReturnType<typeof getInventoryPaginated>
->["rows"][number];
-
 export async function getVendorPosPaginated(
   pagination: PaginationParams,
 ): Promise<PaginatedResult<Awaited<ReturnType<typeof getVendorPos>>[number]>> {
@@ -181,12 +124,12 @@ export async function getVendorPosPaginated(
       offset,
       with: {
         vendor: true,
-        customerOrder: true,
         versions: {
           orderBy: (versions, { desc: descVersion }) => [
             descVersion(versions.versionNumber),
           ],
           limit: 1,
+          with: { lines: true },
         },
       },
     }),
@@ -194,10 +137,6 @@ export async function getVendorPosPaginated(
 
   return buildPaginatedResult(rows, totalResult[0]?.total ?? 0, pagination);
 }
-
-export type CustomerOrderListRow = Awaited<
-  ReturnType<typeof getCustomerOrdersPaginated>
->["rows"][number];
 
 export type VendorPoListRow = Awaited<
   ReturnType<typeof getVendorPosPaginated>

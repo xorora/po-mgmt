@@ -45,15 +45,6 @@ export function PartsDataTable({ result }: PartsDataTableProps) {
       ),
     },
     {
-      accessorKey: "quantityOnHand",
-      header: () => <span className="block text-right">On hand</span>,
-      cell: ({ row }) => (
-        <span className="block text-right tabular-nums">
-          {row.original.quantityOnHand ?? 0}
-        </span>
-      ),
-    },
-    {
       accessorKey: "vendorCount",
       header: "Vendors",
       cell: ({ row }) => (

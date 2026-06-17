@@ -10,14 +10,14 @@ import {
 } from "@/components/parts/part-specs-editor";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,25 +75,25 @@ export function PartFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={handleOpenChange}>
+      <DrawerTrigger asChild>
         <Button
           variant={isEdit ? "outline" : "default"}
           size={isEdit ? "sm" : "default"}
         >
           {triggerLabel ?? (isEdit ? "Edit" : "Add part")}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit part" : "Add part"}</DialogTitle>
-          <DialogDescription>
+      </DrawerTrigger>
+      <DrawerContent className="sm:max-w-lg">
+        <DrawerHeader>
+          <DrawerTitle>{isEdit ? "Edit part" : "Add part"}</DrawerTitle>
+          <DrawerDescription>
             {isEdit
               ? "Update part details and specifications."
-              : "Create a new part. Inventory starts at zero."}
-          </DialogDescription>
-        </DialogHeader>
-        <form action={handleSubmit} className="grid gap-4">
+              : "Add a new part to the catalog."}
+          </DrawerDescription>
+        </DrawerHeader>
+        <form action={handleSubmit} className="flex flex-1 flex-col gap-4">
           {part ? <input type="hidden" name="id" value={part.id} /> : null}
           <PartSpecsEditorHiddenFields category={category} specs={specs} />
 
@@ -128,13 +128,13 @@ export function PartFormDialog({
             />
           </div>
 
-          <DialogFooter className="px-0 pb-0">
+          <DrawerFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : isEdit ? "Save changes" : "Create part"}
             </Button>
-          </DialogFooter>
+          </DrawerFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }

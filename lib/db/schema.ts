@@ -1,9 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
-  boolean,
   integer,
   jsonb,
-  pgEnum,
   pgTable,
   serial,
   text,
@@ -12,24 +10,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 export type PartSpecs = Record<string, string>;
-
-export const customerOrderStatusEnum = pgEnum("customer_order_status", [
-  "pending",
-  "procuring",
-  "ready",
-  "fulfilled",
-]);
-
-export const vendorPoTypeEnum = pgEnum("vendor_po_type", [
-  "customer_derived",
-  "restock",
-]);
-
-export const vendorPoStatusEnum = pgEnum("vendor_po_status", [
-  "draft",
-  "sent",
-  "delivered",
-]);
 
 export const vendors = pgTable("vendors", {
   id: serial("id").primaryKey(),
@@ -118,54 +98,11 @@ export const vendorParts = pgTable(
   ],
 );
 
-export const inventory = pgTable(
-  "inventory",
-  {
-    id: serial("id").primaryKey(),
-    partId: integer("part_id")
-      .notNull()
-      .references(() => parts.id, { onDelete: "cascade" }),
-    quantityOnHand: integer("quantity_on_hand").notNull().default(0),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [uniqueIndex("inventory_part_id_idx").on(table.partId)],
-);
-
-export const customerOrders = pgTable("customer_orders", {
-  id: serial("id").primaryKey(),
-  status: customerOrderStatusEnum("status").notNull().default("pending"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-export const customerOrderLines = pgTable("customer_order_lines", {
-  id: serial("id").primaryKey(),
-  customerOrderId: integer("customer_order_id")
-    .notNull()
-    .references(() => customerOrders.id, { onDelete: "cascade" }),
-  productId: integer("product_id")
-    .notNull()
-    .references(() => products.id),
-  quantity: integer("quantity").notNull(),
-});
-
 export const vendorPos = pgTable("vendor_pos", {
   id: serial("id").primaryKey(),
-  customerOrderId: integer("customer_order_id").references(
-    () => customerOrders.id,
-    { onDelete: "set null" },
-  ),
   vendorId: integer("vendor_id")
     .notNull()
     .references(() => vendors.id),
-  type: vendorPoTypeEnum("type").notNull(),
-  status: vendorPoStatusEnum("status").notNull().default("draft"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -206,42 +143,12 @@ export const vendorPoVersionLines = pgTable("vendor_po_version_lines", {
   quantity: integer("quantity").notNull(),
 });
 
-export const customerPos = pgTable(
-  "customer_pos",
-  {
-    id: serial("id").primaryKey(),
-    customerOrderId: integer("customer_order_id")
-      .notNull()
-      .references(() => customerOrders.id),
-    overrideUsed: boolean("override_used").notNull().default(false),
-    overrideReason: text("override_reason"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    uniqueIndex("customer_pos_customer_order_id_idx").on(table.customerOrderId),
-  ],
-);
-
-export const customerPoLines = pgTable("customer_po_lines", {
-  id: serial("id").primaryKey(),
-  customerPoId: integer("customer_po_id")
-    .notNull()
-    .references(() => customerPos.id, { onDelete: "cascade" }),
-  productId: integer("product_id")
-    .notNull()
-    .references(() => products.id),
-  quantity: integer("quantity").notNull(),
-});
-
 export const vendorsRelations = relations(vendors, ({ many }) => ({
   vendorParts: many(vendorParts),
   vendorPos: many(vendorPos),
 }));
 
-export const partsRelations = relations(parts, ({ one, many }) => ({
-  inventory: one(inventory),
+export const partsRelations = relations(parts, ({ many }) => ({
   productParts: many(productParts),
   vendorParts: many(vendorParts),
   vendorPoVersionLines: many(vendorPoVersionLines),
@@ -249,8 +156,6 @@ export const partsRelations = relations(parts, ({ one, many }) => ({
 
 export const productsRelations = relations(products, ({ many }) => ({
   productParts: many(productParts),
-  customerOrderLines: many(customerOrderLines),
-  customerPoLines: many(customerPoLines),
 }));
 
 export const productPartsRelations = relations(productParts, ({ one }) => ({
@@ -275,41 +180,7 @@ export const vendorPartsRelations = relations(vendorParts, ({ one }) => ({
   }),
 }));
 
-export const inventoryRelations = relations(inventory, ({ one }) => ({
-  part: one(parts, {
-    fields: [inventory.partId],
-    references: [parts.id],
-  }),
-}));
-
-export const customerOrdersRelations = relations(
-  customerOrders,
-  ({ many, one }) => ({
-    lines: many(customerOrderLines),
-    vendorPos: many(vendorPos),
-    customerPo: one(customerPos),
-  }),
-);
-
-export const customerOrderLinesRelations = relations(
-  customerOrderLines,
-  ({ one }) => ({
-    customerOrder: one(customerOrders, {
-      fields: [customerOrderLines.customerOrderId],
-      references: [customerOrders.id],
-    }),
-    product: one(products, {
-      fields: [customerOrderLines.productId],
-      references: [products.id],
-    }),
-  }),
-);
-
 export const vendorPosRelations = relations(vendorPos, ({ one, many }) => ({
-  customerOrder: one(customerOrders, {
-    fields: [vendorPos.customerOrderId],
-    references: [customerOrders.id],
-  }),
   vendor: one(vendors, {
     fields: [vendorPos.vendorId],
     references: [vendors.id],
@@ -342,28 +213,6 @@ export const vendorPoVersionLinesRelations = relations(
   }),
 );
 
-export const customerPosRelations = relations(customerPos, ({ one, many }) => ({
-  customerOrder: one(customerOrders, {
-    fields: [customerPos.customerOrderId],
-    references: [customerOrders.id],
-  }),
-  lines: many(customerPoLines),
-}));
-
-export const customerPoLinesRelations = relations(
-  customerPoLines,
-  ({ one }) => ({
-    customerPo: one(customerPos, {
-      fields: [customerPoLines.customerPoId],
-      references: [customerPos.id],
-    }),
-    product: one(products, {
-      fields: [customerPoLines.productId],
-      references: [products.id],
-    }),
-  }),
-);
-
 export type Vendor = typeof vendors.$inferSelect;
 export type NewVendor = typeof vendors.$inferInsert;
 
@@ -379,15 +228,6 @@ export type NewProductPart = typeof productParts.$inferInsert;
 export type VendorPart = typeof vendorParts.$inferSelect;
 export type NewVendorPart = typeof vendorParts.$inferInsert;
 
-export type Inventory = typeof inventory.$inferSelect;
-export type NewInventory = typeof inventory.$inferInsert;
-
-export type CustomerOrder = typeof customerOrders.$inferSelect;
-export type NewCustomerOrder = typeof customerOrders.$inferInsert;
-
-export type CustomerOrderLine = typeof customerOrderLines.$inferSelect;
-export type NewCustomerOrderLine = typeof customerOrderLines.$inferInsert;
-
 export type VendorPo = typeof vendorPos.$inferSelect;
 export type NewVendorPo = typeof vendorPos.$inferInsert;
 
@@ -396,14 +236,3 @@ export type NewVendorPoVersion = typeof vendorPoVersions.$inferInsert;
 
 export type VendorPoVersionLine = typeof vendorPoVersionLines.$inferSelect;
 export type NewVendorPoVersionLine = typeof vendorPoVersionLines.$inferInsert;
-
-export type CustomerPo = typeof customerPos.$inferSelect;
-export type NewCustomerPo = typeof customerPos.$inferInsert;
-
-export type CustomerPoLine = typeof customerPoLines.$inferSelect;
-export type NewCustomerPoLine = typeof customerPoLines.$inferInsert;
-
-export type CustomerOrderStatus =
-  (typeof customerOrderStatusEnum.enumValues)[number];
-export type VendorPoType = (typeof vendorPoTypeEnum.enumValues)[number];
-export type VendorPoStatus = (typeof vendorPoStatusEnum.enumValues)[number];

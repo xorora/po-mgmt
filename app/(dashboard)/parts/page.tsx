@@ -20,7 +20,7 @@ export default async function PartsPage({ searchParams }: PartsPageProps) {
         <PageHeader
           className="mb-0"
           title="Parts"
-          description="Manage parts, view stock levels, and linked vendors or products."
+          description="Manage parts and view linked vendors or products."
         >
           <PartFormDialog action={createPart} />
         </PageHeader>

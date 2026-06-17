@@ -13,9 +13,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "import:skus": "bun scripts/import-skus.ts",
     "backfill:part-specs": "bun scripts/backfill-part-specs.ts",
-    "sync:parts-from-skus": "bun scripts/sync-parts-from-skus.ts"
+    "import:skus": "bun scripts/import-skus.ts",
+    "smoke:vendor-po": "bun scripts/smoke-test-vendor-po.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -36,6 +36,8 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tw-animate-css": "^1.4.0",
+    "vaul": "^1.1.2",
+    "ws": "^8.21.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -44,6 +46,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4",

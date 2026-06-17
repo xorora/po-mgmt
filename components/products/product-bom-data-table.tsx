@@ -20,15 +20,20 @@ export type ProductBomLine = {
     name: string;
     specs: Record<string, string>;
     description: string | null;
-    inventory: { quantityOnHand: number } | null;
   };
 };
 
 type ProductBomDataTableProps = {
   lines: ProductBomLine[];
+  vendorNamesByPartId?: Map<number, string[]>;
+  extraColumns?: ColumnDef<ProductBomLine>[];
 };
 
-export function ProductBomDataTable({ lines }: ProductBomDataTableProps) {
+export function ProductBomDataTable({
+  lines,
+  vendorNamesByPartId,
+  extraColumns = [],
+}: ProductBomDataTableProps) {
   const columns: ColumnDef<ProductBomLine>[] = [
     {
       accessorKey: "itemNo",
@@ -51,6 +56,25 @@ export function ProductBomDataTable({ lines }: ProductBomDataTableProps) {
         </Link>
       ),
     },
+    ...(vendorNamesByPartId
+      ? [
+          {
+            id: "vendors",
+            header: "Vendor(s)",
+            cell: ({ row }: { row: { original: ProductBomLine } }) => {
+              const vendorNames =
+                vendorNamesByPartId.get(row.original.part.id) ?? [];
+              return (
+                <span className="block max-w-xs text-muted-foreground">
+                  {vendorNames.length > 0
+                    ? vendorNames.join(", ")
+                    : "No vendor assigned"}
+                </span>
+              );
+            },
+          } satisfies ColumnDef<ProductBomLine>,
+        ]
+      : []),
     {
       id: "specs",
       header: "Specifications",
@@ -96,15 +120,7 @@ export function ProductBomDataTable({ lines }: ProductBomDataTableProps) {
         </span>
       ),
     },
-    {
-      id: "onHand",
-      header: () => <span className="block text-right">On hand</span>,
-      cell: ({ row }) => (
-        <span className="block text-right tabular-nums">
-          {row.original.part.inventory?.quantityOnHand ?? 0}
-        </span>
-      ),
-    },
+    ...extraColumns,
   ];
 
   return (
@@ -117,7 +133,7 @@ export function ProductBomDataTable({ lines }: ProductBomDataTableProps) {
       emptyState={{
         title: "No BOM lines",
         description:
-          "Upload an Excel BOM file for this product to populate its bill of materials.",
+          "Add BOM lines to define which parts make up this product.",
         icon: ListTreeIcon,
       }}
     />
