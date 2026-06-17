@@ -1,21 +1,13 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
-import {
-  buildSkuExcelBlobPathname,
-  resolveSkuExcelBlobUploadMode,
-} from "@/lib/sku-excel-path";
-import type { SkuExcelBlobUploadMode } from "@/lib/storage/sku-excel-blob";
-
-const SKU_IMPORT_UPLOAD_URL = "/api/sku-import/upload";
-const SKU_IMPORT_STAGE_URL = "/api/sku-import/stage";
-
 export type SkuExcelBlobUpload = {
   blobUrl: string;
   fileName: string;
 };
 
-async function uploadSkuExcelViaServerStage(
+const SKU_IMPORT_STAGE_URL = "/api/sku-import/stage";
+
+export async function uploadSkuExcelFileToBlob(
   file: File,
 ): Promise<SkuExcelBlobUpload> {
   const formData = new FormData();
@@ -42,39 +34,4 @@ async function uploadSkuExcelViaServerStage(
     blobUrl: payload.blobUrl,
     fileName: payload.fileName,
   };
-}
-
-async function uploadSkuExcelViaClientBlob(
-  file: File,
-): Promise<SkuExcelBlobUpload> {
-  const pathname = buildSkuExcelBlobPathname(file.name);
-  const blob = await upload(pathname, file, {
-    access: "private",
-    handleUploadUrl: SKU_IMPORT_UPLOAD_URL,
-    contentType:
-      file.type ||
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    multipart: file.size > 20 * 1024 * 1024,
-  });
-
-  return {
-    blobUrl: blob.url,
-    fileName: file.name,
-  };
-}
-
-export async function uploadSkuExcelFileToBlob(
-  file: File,
-  mode: Exclude<SkuExcelBlobUploadMode, "direct">,
-): Promise<SkuExcelBlobUpload> {
-  const effectiveMode = resolveSkuExcelBlobUploadMode(
-    mode,
-    window.location.hostname,
-  );
-
-  if (effectiveMode === "server") {
-    return uploadSkuExcelViaServerStage(file);
-  }
-
-  return uploadSkuExcelViaClientBlob(file);
 }

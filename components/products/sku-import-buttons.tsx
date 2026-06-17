@@ -103,9 +103,7 @@ export function UploadSkuFilesButton({
             setUploadProgress(
               `Uploading ${index + 1} of ${files.length} to storage…`,
             );
-            blobUploads.push(
-              await uploadSkuExcelFileToBlob(file, blobUploadMode),
-            );
+            blobUploads.push(await uploadSkuExcelFileToBlob(file));
           }
 
           setUploadProgress("Importing uploaded files…");
@@ -298,10 +296,7 @@ export function UploadProductBomButton({
     startTransition(async () => {
       try {
         if (blobUploadMode !== "direct") {
-          const blobUpload = await uploadSkuExcelFileToBlob(
-            file,
-            blobUploadMode,
-          );
+          const blobUpload = await uploadSkuExcelFileToBlob(file);
           const result = await importProductBomFromBlobAction(
             productId,
             modelCode,

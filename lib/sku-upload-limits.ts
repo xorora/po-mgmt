@@ -1,5 +1,6 @@
-export const SKU_UPLOAD_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
-export const SKU_UPLOAD_MAX_FILE_SIZE_LABEL = "100 MB";
+// Vercel route handlers accept up to 4.5 MB request bodies.
+export const SKU_UPLOAD_MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
+export const SKU_UPLOAD_MAX_FILE_SIZE_LABEL = "4 MB";
 
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) {

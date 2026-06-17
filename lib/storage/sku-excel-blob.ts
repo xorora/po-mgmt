@@ -13,18 +13,15 @@ export const SKU_EXCEL_CONTENT_TYPES = [
   "application/octet-stream",
 ] as const;
 
-export type SkuExcelBlobUploadMode = "client" | "server" | "direct";
+export type SkuExcelBlobUploadMode = "server" | "direct";
 
 export function getSkuExcelBlobUploadMode(): SkuExcelBlobUploadMode {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return "direct";
   }
 
-  // Client uploads rely on Vercel reaching the app callback URL, which fails on localhost.
-  if (process.env.VERCEL === "1") {
-    return "client";
-  }
-
+  // Always stage via the app server. Browser client uploads to Blob fail with
+  // CORS on custom domains and on localhost.
   return "server";
 }
 
