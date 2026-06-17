@@ -98,6 +98,7 @@ export function UploadSkuFilesButton({ action }: UploadSkuFilesButtonProps) {
             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             multiple
             disabled={pending}
+            className="file:bg-primary p-0 file:h-8 file:px-3 file:mr-3"
           />
         </div>
         {summaryText ? (
