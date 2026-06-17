@@ -7,9 +7,9 @@ import {
   createProduct,
   getPartsForProductSelection,
 } from "@/lib/actions/products";
-import { uploadSkuFilesAction } from "@/lib/actions/sku-import";
 import { getProductsPaginated } from "@/lib/data-table/list-queries";
 import { parsePaginationSearchParams } from "@/lib/data-table/pagination";
+import { getSkuExcelBlobUploadMode } from "@/lib/storage/sku-excel-blob";
 
 type ProductsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -33,7 +33,9 @@ export default async function ProductsPage({
           description="Manage products and their bill-of-materials."
         >
           <div className="flex flex-wrap items-center gap-2">
-            <UploadSkuFilesButton action={uploadSkuFilesAction} />
+            <UploadSkuFilesButton
+              blobUploadMode={getSkuExcelBlobUploadMode()}
+            />
             <ProductFormDialog
               action={createProduct}
               availableParts={availableParts}
@@ -42,7 +44,11 @@ export default async function ProductsPage({
         </PageHeader>
       }
     >
-      <ProductsDataTable result={result} availableParts={availableParts} />
+      <ProductsDataTable
+        result={result}
+        availableParts={availableParts}
+        blobUploadMode={getSkuExcelBlobUploadMode()}
+      />
     </DataTablePage>
   );
 }

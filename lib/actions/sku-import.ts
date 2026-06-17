@@ -10,13 +10,23 @@ import {
 import {
   type FileImportResult,
   formatImportSummary,
+  type ImportSkuOptions,
   type ImportSummary,
   importSkuBuffer,
+  importSkuFromBlobUrl,
   parseSkuBuffer,
   summarizeImportResults,
 } from "@/lib/services/sku-import";
+import {
+  validateSkuUploadFileName,
+  validateSkuUploadFileSize,
+} from "@/lib/sku-upload-limits";
+import { isSkuExcelBlobUploadEnabled } from "@/lib/storage/sku-excel-blob";
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+export type SkuBlobUploadInput = {
+  blobUrl: string;
+  fileName: string;
+};
 
 function revalidateAfterImport() {
   revalidatePath("/products");
@@ -31,16 +41,32 @@ function getUploadedFiles(formData: FormData, fieldName: string): File[] {
 }
 
 function validateXlsxFile(file: File): string | null {
-  if (!file.name.toLowerCase().endsWith(".xlsx")) {
-    return `${file.name}: must be an .xlsx file`;
+  const nameError = validateSkuUploadFileName(file.name);
+  if (nameError) {
+    return nameError;
   }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `${file.name}: file is too large (max 10 MB)`;
+
+  return validateSkuUploadFileSize(file);
+}
+
+function validateBlobUploadInput(upload: SkuBlobUploadInput): string | null {
+  const nameError = validateSkuUploadFileName(upload.fileName);
+  if (nameError) {
+    return nameError;
   }
+
+  if (!upload.blobUrl.trim()) {
+    return `${upload.fileName}: missing blob URL`;
+  }
+
   return null;
 }
 
-async function importUploadedFile(file: File): Promise<FileImportResult> {
+async function importUploadedFile(
+  file: File,
+  options: ImportSkuOptions = {},
+  seenModelCodes?: Map<string, string>,
+): Promise<FileImportResult> {
   const validationError = validateXlsxFile(file);
   if (validationError) {
     return {
@@ -62,7 +88,7 @@ async function importUploadedFile(file: File): Promise<FileImportResult> {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  return importSkuBuffer(buffer, file.name);
+  return importSkuBuffer(buffer, file.name, options, seenModelCodes);
 }
 
 function buildImportActionResult(summary: ImportSummary): ActionResult & {
@@ -86,18 +112,51 @@ function buildImportActionResult(summary: ImportSummary): ActionResult & {
   };
 }
 
-export async function uploadSkuFilesAction(
-  formData: FormData,
+export async function importSkuFilesFromBlobAction(
+  uploads: SkuBlobUploadInput[],
 ): Promise<ActionResult & { summary?: ImportSummary; summaryText?: string }> {
-  const files = getUploadedFiles(formData, "files");
-  if (files.length === 0) {
+  if (!isSkuExcelBlobUploadEnabled()) {
+    return actionError("Blob storage is not configured for Excel imports");
+  }
+
+  if (uploads.length === 0) {
     return actionError("Select at least one Excel file");
   }
 
   try {
     const fileResults: FileImportResult[] = [];
-    for (const file of files) {
-      fileResults.push(await importUploadedFile(file));
+    const seenModelCodes = new Map<string, string>();
+
+    for (const upload of uploads) {
+      const validationError = validateBlobUploadInput(upload);
+      if (validationError) {
+        fileResults.push({
+          fileName: upload.fileName,
+          modelCode: "",
+          displayName: "",
+          productCreated: false,
+          productUpdated: false,
+          partsCreated: 0,
+          partsUpdated: 0,
+          bomLinesImported: 0,
+          imagesExtracted: 0,
+          imagesUploaded: 0,
+          imagesFailed: 0,
+          imagesSkipped: false,
+          skippedRows: [],
+          error: validationError,
+        });
+        continue;
+      }
+
+      fileResults.push(
+        await importSkuFromBlobUrl(
+          upload.blobUrl,
+          upload.fileName,
+          {},
+          seenModelCodes,
+        ),
+      );
     }
 
     const summary = summarizeImportResults(fileResults);
@@ -110,6 +169,73 @@ export async function uploadSkuFilesAction(
   }
 }
 
+export async function importProductBomFromBlobAction(
+  productId: number,
+  expectedModelCode: string,
+  upload: SkuBlobUploadInput,
+): Promise<ActionResult & { result?: FileImportResult }> {
+  if (!Number.isFinite(productId)) {
+    return actionError("Invalid product id");
+  }
+  if (!expectedModelCode.trim()) {
+    return actionError("Model code is required");
+  }
+  if (!isSkuExcelBlobUploadEnabled()) {
+    return actionError("Blob storage is not configured for Excel imports");
+  }
+
+  const validationError = validateBlobUploadInput(upload);
+  if (validationError) {
+    return actionError(validationError);
+  }
+
+  try {
+    const result = await importSkuFromBlobUrl(upload.blobUrl, upload.fileName, {
+      allowExistingProduct: true,
+      expectedModelCode: expectedModelCode.trim(),
+    });
+    revalidateAfterImport();
+    revalidatePath(`/products/${productId}`);
+
+    if (result.error) {
+      return { ...actionError(result.error), result };
+    }
+
+    return { ...actionSuccess(), result };
+  } catch (error) {
+    return actionError(
+      error instanceof Error ? error.message : "BOM upload failed",
+    );
+  }
+}
+
+/** Legacy direct upload when Blob is not configured (local dev). */
+export async function uploadSkuFilesAction(
+  formData: FormData,
+): Promise<ActionResult & { summary?: ImportSummary; summaryText?: string }> {
+  const files = getUploadedFiles(formData, "files");
+  if (files.length === 0) {
+    return actionError("Select at least one Excel file");
+  }
+
+  try {
+    const fileResults: FileImportResult[] = [];
+    const seenModelCodes = new Map<string, string>();
+    for (const file of files) {
+      fileResults.push(await importUploadedFile(file, {}, seenModelCodes));
+    }
+
+    const summary = summarizeImportResults(fileResults);
+    revalidateAfterImport();
+    return buildImportActionResult(summary);
+  } catch (error) {
+    return actionError(
+      error instanceof Error ? error.message : "Excel import failed",
+    );
+  }
+}
+
+/** Legacy direct upload when Blob is not configured (local dev). */
 export async function uploadProductBomAction(
   formData: FormData,
 ): Promise<ActionResult & { result?: FileImportResult }> {
@@ -145,7 +271,9 @@ export async function uploadProductBomAction(
       );
     }
 
-    const result = await importSkuBuffer(buffer, file.name);
+    const result = await importSkuBuffer(buffer, file.name, {
+      allowExistingProduct: true,
+    });
     revalidateAfterImport();
     revalidatePath(`/products/${productId}`);
 

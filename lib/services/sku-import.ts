@@ -11,8 +11,29 @@ import {
   emptyBomRowImageUrls,
   extractImagesFromXlsxBuffer,
 } from "@/lib/services/excel-images";
+import { normalizePartName } from "@/lib/services/part-specs";
 import { upsertPartFromImportLine } from "@/lib/services/parts-catalog";
+import {
+  type FileImportResult,
+  type ImportSummary,
+  type SkippedRow,
+  summarizeImportResults,
+} from "@/lib/sku-import-summary";
 import { uploadBomImage } from "@/lib/storage/bom-image-storage";
+import {
+  deleteSkuExcelBlob,
+  downloadSkuExcelBlob,
+} from "@/lib/storage/sku-excel-blob";
+
+export type {
+  FileImportResult,
+  ImportSummary,
+  SkippedRow,
+} from "@/lib/sku-import-summary";
+export {
+  formatImportSummary,
+  summarizeImportResults,
+} from "@/lib/sku-import-summary";
 
 const BOM_START_ROW = 5; // 0-indexed row 6
 const COL = {
@@ -41,43 +62,95 @@ export type ParsedSkuFile = {
   skippedRows: SkippedRow[];
 };
 
-export type SkippedRow = {
-  row: number;
-  reason: string;
-  partName?: string;
+export type ImportSkuOptions = {
+  /** When true, updates an existing product's BOM instead of rejecting it. */
+  allowExistingProduct?: boolean;
+  /** When set, the parsed model code must match this value. */
+  expectedModelCode?: string;
 };
 
-export type FileImportResult = {
-  fileName: string;
-  modelCode: string;
-  displayName: string;
-  productCreated: boolean;
-  productUpdated: boolean;
-  partsCreated: number;
-  partsUpdated: number;
-  bomLinesImported: number;
-  imagesExtracted: number;
-  imagesUploaded: number;
-  imagesFailed: number;
-  imagesSkipped: boolean;
-  skippedRows: SkippedRow[];
-  error?: string;
-};
+function normalizedModelCode(modelCode: string): string {
+  return modelCode.trim().toLowerCase();
+}
 
-export type ImportSummary = {
-  filesProcessed: number;
-  filesFailed: number;
-  productsCreated: number;
-  productsUpdated: number;
-  partsCreated: number;
-  partsUpdated: number;
-  bomLinesImported: number;
-  totalSkippedRows: number;
-  imagesExtracted: number;
-  imagesUploaded: number;
-  imagesFailed: number;
-  fileResults: FileImportResult[];
-};
+export function getDuplicatePartsError(
+  bomLines: ParsedBomLine[],
+): string | null {
+  const rowsByPart = new Map<string, { partName: string; rows: number[] }>();
+
+  for (const line of bomLines) {
+    const key = normalizePartName(line.partName);
+    const existing = rowsByPart.get(key);
+    if (existing) {
+      existing.rows.push(line.rowNumber);
+      continue;
+    }
+
+    rowsByPart.set(key, { partName: line.partName, rows: [line.rowNumber] });
+  }
+
+  const duplicates = [...rowsByPart.values()].filter(
+    (entry) => entry.rows.length > 1,
+  );
+  if (duplicates.length === 0) {
+    return null;
+  }
+
+  const details = duplicates
+    .map(
+      (entry) =>
+        `"${entry.partName}" (rows ${entry.rows.sort((a, b) => a - b).join(", ")})`,
+    )
+    .join("; ");
+
+  return `Duplicate part(s) in BOM: ${details}`;
+}
+
+export function getDuplicateModelCodeInBatchError(
+  parsed: ParsedSkuFile,
+  seenModelCodes: Map<string, string>,
+): string | null {
+  const modelKey = normalizedModelCode(parsed.modelCode);
+  const priorFile = seenModelCodes.get(modelKey);
+  if (!priorFile) {
+    return null;
+  }
+
+  return `Model code "${parsed.modelCode}" is duplicated in this upload (also in ${priorFile})`;
+}
+
+function trackModelCodeInBatch(
+  parsed: ParsedSkuFile,
+  seenModelCodes: Map<string, string>,
+): void {
+  seenModelCodes.set(normalizedModelCode(parsed.modelCode), parsed.fileName);
+}
+
+export async function validateParsedSkuForImport(
+  parsed: ParsedSkuFile,
+  options: ImportSkuOptions = {},
+): Promise<string | null> {
+  const duplicatePartsError = getDuplicatePartsError(parsed.bomLines);
+  if (duplicatePartsError) {
+    return duplicatePartsError;
+  }
+
+  if (options.allowExistingProduct) {
+    return null;
+  }
+
+  const [existingProduct] = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(eq(products.modelCode, parsed.modelCode.trim()))
+    .limit(1);
+
+  if (existingProduct) {
+    return `Product with model code "${parsed.modelCode}" already exists`;
+  }
+
+  return null;
+}
 
 function cellValue(
   sheet: XLSX.WorkSheet,
@@ -184,7 +257,7 @@ export function parseSkuWorkbook(
   return {
     fileName,
     displayName,
-    modelCode,
+    modelCode: modelCode.trim(),
     bomLines,
     skippedRows,
   };
@@ -288,6 +361,7 @@ export async function attachImagesToParsedSkuFromBuffer(
 
 export async function importParsedSku(
   parsed: ParsedSkuFile,
+  options: ImportSkuOptions = {},
 ): Promise<
   Omit<
     FileImportResult,
@@ -309,6 +383,12 @@ export async function importParsedSku(
   let productUpdated = false;
 
   if (existingProduct) {
+    if (!options.allowExistingProduct) {
+      throw new Error(
+        `Product with model code "${parsed.modelCode}" already exists`,
+      );
+    }
+
     productId = existingProduct.id;
     if (existingProduct.displayName !== parsed.displayName) {
       await db
@@ -383,11 +463,41 @@ export async function importParsedSku(
 export async function importSkuBuffer(
   buffer: Buffer,
   fileName: string,
+  options: ImportSkuOptions = {},
+  seenModelCodes?: Map<string, string>,
 ): Promise<FileImportResult> {
   try {
     const parsed = parseSkuBuffer(buffer, fileName);
+
+    if (seenModelCodes) {
+      const batchError = getDuplicateModelCodeInBatchError(
+        parsed,
+        seenModelCodes,
+      );
+      if (batchError) {
+        throw new Error(batchError);
+      }
+      trackModelCodeInBatch(parsed, seenModelCodes);
+    }
+
+    const validationError = await validateParsedSkuForImport(parsed, options);
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    if (options.expectedModelCode) {
+      if (
+        parsed.modelCode.trim().toLowerCase() !==
+        options.expectedModelCode.trim().toLowerCase()
+      ) {
+        throw new Error(
+          `Excel model code "${parsed.modelCode}" does not match product model code "${options.expectedModelCode.trim()}"`,
+        );
+      }
+    }
+
     const imageStats = await attachImagesToParsedSkuFromBuffer(parsed, buffer);
-    const result = await importParsedSku(parsed);
+    const result = await importParsedSku(parsed, options);
     return {
       fileName,
       ...result,
@@ -415,11 +525,44 @@ export async function importSkuBuffer(
 
 export async function importSkuFile(
   filePath: string,
+  options: ImportSkuOptions = {},
+  seenModelCodes?: Map<string, string>,
 ): Promise<FileImportResult> {
   const { readFile } = await import("node:fs/promises");
   const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
   const buffer = await readFile(filePath);
-  return importSkuBuffer(buffer, fileName);
+  return importSkuBuffer(buffer, fileName, options, seenModelCodes);
+}
+
+export async function importSkuFromBlobUrl(
+  blobUrl: string,
+  fileName: string,
+  options: ImportSkuOptions = {},
+  seenModelCodes?: Map<string, string>,
+): Promise<FileImportResult> {
+  try {
+    const buffer = await downloadSkuExcelBlob(blobUrl);
+    return await importSkuBuffer(buffer, fileName, options, seenModelCodes);
+  } catch (error) {
+    return {
+      fileName,
+      modelCode: "",
+      displayName: "",
+      productCreated: false,
+      productUpdated: false,
+      partsCreated: 0,
+      partsUpdated: 0,
+      bomLinesImported: 0,
+      imagesExtracted: 0,
+      imagesUploaded: 0,
+      imagesFailed: 0,
+      imagesSkipped: false,
+      skippedRows: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    await deleteSkuExcelBlob(blobUrl).catch(() => undefined);
+  }
 }
 
 export async function importSkuDirectory(
@@ -434,110 +577,16 @@ export async function importSkuDirectory(
     .sort();
 
   const fileResults: FileImportResult[] = [];
+  const seenModelCodes = new Map<string, string>();
 
   for (const file of files) {
-    const result = await importSkuFile(join(directoryPath, file));
+    const result = await importSkuFile(
+      join(directoryPath, file),
+      {},
+      seenModelCodes,
+    );
     fileResults.push(result);
   }
 
   return summarizeImportResults(fileResults);
-}
-
-export function summarizeImportResults(
-  fileResults: FileImportResult[],
-): ImportSummary {
-  const successful = fileResults.filter((result) => !result.error);
-
-  return {
-    filesProcessed: fileResults.length,
-    filesFailed: fileResults.filter((result) => result.error).length,
-    productsCreated: successful.filter((result) => result.productCreated)
-      .length,
-    productsUpdated: successful.filter((result) => result.productUpdated)
-      .length,
-    partsCreated: successful.reduce(
-      (sum, result) => sum + result.partsCreated,
-      0,
-    ),
-    partsUpdated: successful.reduce(
-      (sum, result) => sum + result.partsUpdated,
-      0,
-    ),
-    bomLinesImported: successful.reduce(
-      (sum, result) => sum + result.bomLinesImported,
-      0,
-    ),
-    totalSkippedRows: successful.reduce(
-      (sum, result) => sum + result.skippedRows.length,
-      0,
-    ),
-    imagesExtracted: successful.reduce(
-      (sum, result) => sum + result.imagesExtracted,
-      0,
-    ),
-    imagesUploaded: successful.reduce(
-      (sum, result) => sum + result.imagesUploaded,
-      0,
-    ),
-    imagesFailed: successful.reduce(
-      (sum, result) => sum + result.imagesFailed,
-      0,
-    ),
-    fileResults,
-  };
-}
-
-export function formatImportSummary(summary: ImportSummary): string {
-  const lines: string[] = [
-    "Excel Import Summary",
-    "====================",
-    `Files processed: ${summary.filesProcessed}`,
-    `Files failed: ${summary.filesFailed}`,
-    `Products created: ${summary.productsCreated}`,
-    `Products updated: ${summary.productsUpdated}`,
-    `Parts created: ${summary.partsCreated}`,
-    `Parts updated: ${summary.partsUpdated}`,
-    `BOM lines imported: ${summary.bomLinesImported}`,
-    `Rows skipped: ${summary.totalSkippedRows}`,
-    `Images extracted: ${summary.imagesExtracted}`,
-    `Images uploaded: ${summary.imagesUploaded}`,
-    `Image upload failures: ${summary.imagesFailed}`,
-    "",
-    "Per file:",
-  ];
-
-  for (const result of summary.fileResults) {
-    if (result.error) {
-      lines.push(`  ✗ ${result.fileName}: ${result.error}`);
-      continue;
-    }
-
-    const flags = [
-      result.productCreated ? "product created" : null,
-      result.productUpdated ? "product updated" : null,
-    ]
-      .filter(Boolean)
-      .join(", ");
-
-    lines.push(
-      `  ✓ ${result.fileName} (${result.modelCode})`,
-      `      ${result.bomLinesImported} BOM lines, ${result.partsCreated} new parts, ${result.partsUpdated} updated parts${flags ? `, ${flags}` : ""}`,
-      `      Images: ${result.imagesExtracted} extracted, ${result.imagesUploaded} uploaded${result.imagesFailed > 0 ? `, ${result.imagesFailed} failed` : ""}`,
-    );
-
-    if (result.skippedRows.length > 0) {
-      lines.push(`      Skipped ${result.skippedRows.length} rows:`);
-      for (const skipped of result.skippedRows.slice(0, 5)) {
-        const label = skipped.partName ? ` "${skipped.partName}"` : "";
-        lines.push(`        - Row ${skipped.row}${label}: ${skipped.reason}`);
-      }
-      if (result.skippedRows.length > 5) {
-        lines.push(
-          `        ... and ${result.skippedRows.length - 5} more skipped rows`,
-        );
-      }
-    }
-  }
-
-  return lines.join("\n");
 }

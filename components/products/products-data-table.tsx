@@ -16,18 +16,20 @@ import {
   type PartOptionForProduct,
   updateProduct,
 } from "@/lib/actions/products";
-import { uploadSkuFilesAction } from "@/lib/actions/sku-import";
 import type { ProductListRow } from "@/lib/data-table/list-queries";
 import type { PaginatedResult } from "@/lib/data-table/pagination";
+import type { SkuExcelBlobUploadMode } from "@/lib/storage/sku-excel-blob";
 
 type ProductsDataTableProps = {
   result: PaginatedResult<ProductListRow>;
   availableParts: PartOptionForProduct[];
+  blobUploadMode: SkuExcelBlobUploadMode;
 };
 
 export function ProductsDataTable({
   result,
   availableParts,
+  blobUploadMode,
 }: ProductsDataTableProps) {
   const columns: ColumnDef<ProductListRow>[] = [
     {
@@ -93,7 +95,7 @@ export function ProductsDataTable({
         icon: BoxIcon,
         content: (
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <UploadSkuFilesButton action={uploadSkuFilesAction} />
+            <UploadSkuFilesButton blobUploadMode={blobUploadMode} />
             <ProductFormDialog
               action={createProduct}
               availableParts={availableParts}

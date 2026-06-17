@@ -16,7 +16,7 @@ import {
   getProductById,
   updateProduct,
 } from "@/lib/actions/products";
-import { uploadProductBomAction } from "@/lib/actions/sku-import";
+import { getSkuExcelBlobUploadMode } from "@/lib/storage/sku-excel-blob";
 
 type ProductDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -53,7 +53,7 @@ export default async function ProductDetailPage({
           <UploadProductBomButton
             productId={product.id}
             modelCode={product.modelCode}
-            action={uploadProductBomAction}
+            blobUploadMode={getSkuExcelBlobUploadMode()}
           />
           <ProductFormDialog
             product={product}
