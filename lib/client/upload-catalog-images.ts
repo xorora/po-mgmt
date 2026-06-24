@@ -3,12 +3,12 @@
 import { uploadPresigned } from "@vercel/blob/client";
 
 import { validateCatalogImageFile } from "@/lib/catalog-image-limits";
-import { isLocalDevHostname } from "@/lib/sku-excel-path";
-import type { CatalogImageBlobUploadMode } from "@/lib/storage/catalog-image-blob";
 import {
   buildCatalogImagePathname,
+  type CatalogImageBlobUploadMode,
   type CatalogImageEntityType,
-} from "@/lib/storage/catalog-image-storage";
+} from "@/lib/catalog-image-shared";
+import { isLocalDevHostname } from "@/lib/sku-excel-path";
 
 const CATALOG_IMAGE_UPLOAD_URL = "/api/catalog-images/upload";
 const CATALOG_IMAGE_STAGE_URL = "/api/catalog-images/stage";

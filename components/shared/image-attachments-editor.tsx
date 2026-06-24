@@ -8,9 +8,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { CATALOG_IMAGE_MAX_COUNT } from "@/lib/catalog-image-limits";
+import type {
+  CatalogImageBlobUploadMode,
+  CatalogImageEntityType,
+} from "@/lib/catalog-image-shared";
 import { uploadCatalogImageFile } from "@/lib/client/upload-catalog-images";
-import type { CatalogImageBlobUploadMode } from "@/lib/storage/catalog-image-blob";
-import type { CatalogImageEntityType } from "@/lib/storage/catalog-image-storage";
 
 type ImageAttachmentsEditorProps = {
   entityType: CatalogImageEntityType;

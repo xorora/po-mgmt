@@ -20,8 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PartOptionForProduct } from "@/lib/actions/products";
 import type { ActionResult } from "@/lib/actions/types";
+import type { CatalogImageBlobUploadMode } from "@/lib/catalog-image-shared";
 import type { Product } from "@/lib/db/schema";
-import type { CatalogImageBlobUploadMode } from "@/lib/storage/catalog-image-blob";
 
 type ProductFormDialogProps = {
   product?: Pick<Product, "id" | "modelCode" | "displayName" | "imageUrls">;

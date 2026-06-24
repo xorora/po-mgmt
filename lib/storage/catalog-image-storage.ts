@@ -2,13 +2,22 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
 
+import {
+  buildCatalogImagePathname,
+  CATALOG_IMAGE_BLOB_PREFIX,
+  type CatalogImageEntityType,
+  isValidCatalogImageUrl,
+} from "@/lib/catalog-image-shared";
 import { getBlobAuthOptions } from "@/lib/storage/blob-config";
 
 const LOCAL_STORAGE_DIR = path.join(process.cwd(), ".catalog-image-storage");
 
-export const CATALOG_IMAGE_BLOB_PREFIX = "catalog-images/";
-
-export type CatalogImageEntityType = "parts" | "products";
+export {
+  buildCatalogImagePathname,
+  CATALOG_IMAGE_BLOB_PREFIX,
+  type CatalogImageEntityType,
+  isValidCatalogImageUrl,
+};
 
 function contentTypeFromPath(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
@@ -18,21 +27,8 @@ function contentTypeFromPath(filePath: string): string {
   return "image/png";
 }
 
-function sanitizeFileName(fileName: string): string {
-  const base = path.basename(fileName).replace(/[^a-zA-Z0-9._-]+/g, "-");
-  return base || "image.png";
-}
-
 function sanitizeStorageKey(key: string): string {
   return key.replace(/[^a-zA-Z0-9._/-]+/g, "-");
-}
-
-export function buildCatalogImagePathname(
-  entityType: CatalogImageEntityType,
-  fileName: string,
-): string {
-  const safeName = sanitizeFileName(fileName);
-  return `${CATALOG_IMAGE_BLOB_PREFIX}${entityType}/pending/${Date.now()}-${safeName}`;
 }
 
 export function getLocalCatalogImagePath(storageKey: string): string {
@@ -65,28 +61,4 @@ export async function uploadCatalogImage(
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, buffer);
   return `/api/catalog-images/${relativeKey.split("/").map(encodeURIComponent).join("/")}`;
-}
-
-export function isValidCatalogImageUrl(url: string): boolean {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-
-  if (trimmed.startsWith("/api/catalog-images/")) {
-    const storagePath = trimmed.slice("/api/catalog-images/".length);
-    return (
-      storagePath.length > 0 &&
-      !storagePath.includes("..") &&
-      (storagePath.startsWith("parts/") || storagePath.startsWith("products/"))
-    );
-  }
-
-  try {
-    const pathname = decodeURIComponent(new URL(trimmed).pathname).replace(
-      /^\//,
-      "",
-    );
-    return pathname.startsWith(CATALOG_IMAGE_BLOB_PREFIX);
-  } catch {
-    return false;
-  }
 }

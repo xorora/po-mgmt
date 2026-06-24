@@ -17,13 +17,13 @@ import {
   type PartOptionForProduct,
   updateProduct,
 } from "@/lib/actions/products";
+import type { CatalogImageBlobUploadMode } from "@/lib/catalog-image-shared";
 import {
   hasActiveListFilters,
   type ProductsListParams,
 } from "@/lib/data-table/list-params";
 import type { ProductListRow } from "@/lib/data-table/list-queries";
 import type { PaginatedResult } from "@/lib/data-table/pagination";
-import type { CatalogImageBlobUploadMode } from "@/lib/storage/catalog-image-blob";
 import type { SkuExcelBlobUploadMode } from "@/lib/storage/sku-excel-blob";
 
 type ProductsDataTableProps = {

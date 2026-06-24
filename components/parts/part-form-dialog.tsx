@@ -25,12 +25,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { VendorOptionForPart } from "@/lib/actions/parts";
 import type { ActionResult } from "@/lib/actions/types";
+import type { CatalogImageBlobUploadMode } from "@/lib/catalog-image-shared";
 import type { Part, PartSpecs } from "@/lib/db/schema";
 import {
   inferPartCategory,
   type PartCategory,
 } from "@/lib/services/part-specs";
-import type { CatalogImageBlobUploadMode } from "@/lib/storage/catalog-image-blob";
 
 type PartFormDialogProps = {
   part?: Pick<

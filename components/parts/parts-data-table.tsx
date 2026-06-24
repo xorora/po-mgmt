@@ -12,6 +12,7 @@ import { PartSpecsDisplay } from "@/components/parts/part-specs-display";
 import { Badge } from "@/components/ui/badge";
 import type { VendorOptionForPart } from "@/lib/actions/parts";
 import { createPart, deletePart, updatePart } from "@/lib/actions/parts";
+import type { CatalogImageBlobUploadMode } from "@/lib/catalog-image-shared";
 import {
   hasActiveListFilters,
   type PartsListParams,
@@ -19,7 +20,6 @@ import {
 import type { PartListRow } from "@/lib/data-table/list-queries";
 import type { PaginatedResult } from "@/lib/data-table/pagination";
 import { PART_CATEGORIES } from "@/lib/services/part-specs";
-import type { CatalogImageBlobUploadMode } from "@/lib/storage/catalog-image-blob";
 
 type PartsDataTableProps = {
   result: PaginatedResult<PartListRow>;
