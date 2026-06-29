@@ -50,7 +50,7 @@ export async function stageSkuExcelToBlob(
   const safeName = sanitizeFileName(fileName) || "upload.xlsx";
   const pathname = `${SKU_EXCEL_BLOB_PREFIX}${Date.now()}-${safeName}`;
   const blob = await put(pathname, buffer, {
-    access: "private",
+    access: "public",
     contentType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     addRandomSuffix: true,
@@ -109,7 +109,7 @@ export async function downloadSkuExcelBlob(blobUrl: string): Promise<Buffer> {
   }
 
   const result = await get(pathnameFromBlobUrl(blobUrl), {
-    access: "private",
+    access: "public",
     ...auth,
   });
 

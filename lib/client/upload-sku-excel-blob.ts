@@ -48,7 +48,7 @@ async function uploadSkuExcelViaPresignedBlob(
 ): Promise<SkuExcelBlobUpload> {
   const pathname = buildSkuExcelBlobPathname(file.name);
   const blob = await uploadPresigned(pathname, file, {
-    access: "private",
+    access: "public",
     handleUploadUrl: SKU_IMPORT_UPLOAD_URL,
     contentType:
       file.type ||
