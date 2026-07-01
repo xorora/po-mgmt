@@ -1,0 +1,17 @@
+flowchart TB
+    subgraph vercel ["Next.js App (Vercel)"]
+        direction TB
+        subgraph ui ["Presentation Layer"]
+            D[Dashboard Pages]
+            C["CRUD Pages<br/>(RSC + Client)"]
+            A["API Routes<br/>(SKU import, images, PDF)"]
+        end
+        S["Server Actions &<br/>Service Layer"]
+        D --> S
+        C --> S
+        A --> S
+    end
+
+    S --> DB[(Neon PostgreSQL)]
+    S --> Blob[Vercel Blob Storage]
+    S --> FS["Local FS<br/>(dev fallback)"]

@@ -6,7 +6,14 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/node_modules", "!**/.next", "!**/lib/db/migrations"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/lib/db/migrations",
+      "!docs/STATEMENT_OF_WORK.html",
+      "!docs/sow-print.css"
+    ]
   },
   "formatter": {
     "enabled": true,

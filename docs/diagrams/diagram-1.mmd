@@ -1,0 +1,4 @@
+flowchart LR
+    V[Vendors] -->|supply| P[Parts]
+    P -->|referenced by| PR["Products (BOM)"]
+    P --> PO["Vendor POs<br/>(versioned PDFs)"]

@@ -1,0 +1,35 @@
+gantt
+    title PO Management System — Project Timeline
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+
+    section Phase 1: Foundation
+    Project setup & schema design           :done,    p1a, 2026-07-01, 5d
+    Prisma schema & Neon DB setup           :done,    p1b, after p1a, 4d
+    App shell, navigation & layout          :done,    p1c, after p1b, 5d
+    Data table infrastructure               :done,    p1d, after p1c, 4d
+
+    section Phase 2: Master Data
+    Vendor CRUD                             :done,    p2a, 2026-07-15, 4d
+    Parts catalog & specs system            :done,    p2b, after p2a, 6d
+    Product CRUD & manual BOM editor        :done,    p2c, after p2b, 5d
+    Excel BOM import & image extraction     :done,    p2d, after p2c, 7d
+    Vendor-part assignment & pricing        :done,    p2e, after p2d, 5d
+
+    section Phase 3: Vendor POs
+    Manual PO creation & editing            :done,    p3a, 2026-08-06, 6d
+    PO versioning logic                     :done,    p3b, after p3a, 4d
+    PDF generation & blob storage           :done,    p3c, after p3b, 5d
+    PO list & detail pages                  :done,    p3d, after p3c, 4d
+
+    section Phase 4: BOM PO Generation
+    Build plan demand aggregation           :active,  p4a, 2026-08-24, 5d
+    Vendor resolution & preview UI            :active,  p4b, after p4a, 5d
+    Multi-vendor PO generation              :         p4c, after p4b, 4d
+    Build plan edge cases & validation      :         p4d, after p4c, 3d
+
+    section Phase 5: Polish & Release
+    Dashboard                               :         p5a, 2026-09-06, 3d
+    QA, smoke tests & bug fixes             :         p5b, after p5a, 7d
+    Documentation & deployment              :         p5c, after p5b, 4d
+    v1 Production release                   :milestone, m1, 2026-09-20, 0d

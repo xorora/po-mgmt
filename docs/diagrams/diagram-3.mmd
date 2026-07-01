@@ -1,0 +1,41 @@
+erDiagram
+    Vendor ||--o{ VendorPart : assigns
+    Part ||--o{ VendorPart : "supplied by"
+    Vendor ||--o{ VendorPo : receives
+    VendorPo ||--o{ VendorPoVersion : versions
+    VendorPoVersion ||--o{ VendorPoVersionLine : contains
+    Part ||--o{ VendorPoVersionLine : ordered
+    Product ||--o{ ProductPart : "BOM lines"
+    Part ||--o{ ProductPart : "used in"
+
+    Vendor {
+        int id PK
+        string name
+        string contactName
+        string email
+    }
+    Part {
+        int id PK
+        string name
+        string normalizedName
+        json specs
+    }
+    Product {
+        int id PK
+        string modelCode
+        string displayName
+    }
+    VendorPart {
+        int vendorId FK
+        int partId FK
+        decimal unitPrice
+    }
+    VendorPo {
+        int id PK
+        int vendorId FK
+    }
+    VendorPoVersion {
+        int id PK
+        int versionNumber
+        string pdfUrl
+    }
